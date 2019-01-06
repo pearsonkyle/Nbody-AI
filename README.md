@@ -90,10 +90,50 @@ We use our N-body code to explore the parameter space governing our transit timi
 In order to derive the orbit parameters from observations gradient-based techniques have been proposed to expedite the orbit optimization using N-body simulations however they inherently find local minima in a degenerate phase space (e.g. mass and eccentricity) unless priors are heavily constrained. We introduce a new method for retrieving orbit parameters within a Bayesian framework using nested sampling. Nested Sampling allows us to sample multimodal distributions and infer uncertainities from our posteriors in a manner more efficient than a Markov Chain Monte Carlo. 
 
 ```python
-nested N-body example
+import matplotlib.pyplot as plt
+import numpy as np
+import corner 
+
+from nbody.simulation import generate, integrate, analyze, report, nested_nbody
+from nbody.tools import mjup,msun,mearth,G,au,rearth,sa
+
+if __name__ == "__main__":
+    
+    # units: Msun, Days, au
+    objects = [
+        {'m':1.12},
+        {'m':0.28*mjup/msun, 'P':3.2888, 'inc':3.14159/2,'e':0, 'omega':0  }, 
+        {'m':1*mjup/msun, 'P':7.5, 'inc':3.14159/2,'e':0,  'omega':np.pi/4  }, 
+    ]
+
+    # create REBOUND simulation
+    sim = generate(objects)
+
+    # year long integrations, timestep = 1 hour
+    sim_data = integrate(sim, objects, 60, 60*24) 
+    
+    # collect the analytics of interest from the simulation
+    ttv_data = analyze(sim_data)
+
+    # simulate some observational data with noise 
+    ttv = ttv_data['planets'][0]['ttv']
+    ttv += np.random.normal(0.25,0.25,len(ttv))/(24*60)
+    epochs = np.arange(len(ttv))
+    err = np.random.normal(30,5,len(ttv))/(24*60*60)
+    del objects[-1]
+
+    # estimate priors
+    bounds = [5*mearth/msun, 2*mjup/msun, 6,9, 0.0,0.1]
+
+    # TODO newobj create, create plotting routine for final solution and posters
+    newobj, posteriors = nested_nbody( epochs,ttv,err, objects, bounds )
+
+    f = corner.corner(posteriors, labels=['mass','per','ecc'],bins=int(np.sqrt(posteriors.shape[0])), plot_contours=False, plot_density=False)
+    plt.show() 
+
 ```
 Posteriors from the TTV retrieval will look something like this: 
-![](figures/corner_plot.png)
+![](figures/nested-nbody.png)
 
 Hopefully, that is enough information to get you started on fitting observations. Please feel free to contact me if you have difficulty using this code. 
 
