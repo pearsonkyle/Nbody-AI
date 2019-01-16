@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pickle 
 import corner 
+import copy
 
 import os
 import pymultinest
@@ -10,7 +11,37 @@ if not os.path.exists("chains"): os.mkdir("chains")
 from nbody.simulation import randomize, generate, integrate, analyze, report
 from nbody.tools import mjup,msun,mearth,G,au,rearth,sa
 
-def nested_nbody( xx,yy,yerr, objects, bounds=[-10.,10.,-10.,10.], myloss='soft_l1'):
+
+def lfit(xx,yy,error, bounds=[-10.,10.,-10.,10.]):
+    # linear fit with nested sampling
+
+    # prevents seg fault in MultiNest
+    error[error==0] = 1
+    
+    def model_lin(params):
+        return xx*params[0]+params[1]
+
+    def myprior_lin(cube, ndim, n_params):
+        '''This transforms a unit cube into the dimensions of your prior space.'''
+        cube[0] = (bounds[1] - bounds[0])*cube[0]+bounds[0]
+        cube[1] = (bounds[3] - bounds[2])*cube[1]+bounds[2]
+
+    def myloglike_lin(cube, ndim, n_params):
+        loglike = -np.sum( ((yy-model_lin(cube))/error)**2 )
+        return loglike/2.
+
+    pymultinest.run(myloglike_lin, myprior_lin, 2, resume = False, sampling_efficiency = 0.5)
+
+    # retrieves the data that has been written to hard drive
+    a = pymultinest.Analyzer(n_params=2)
+    return a.get_stats(), a.get_data()
+
+def get_ttv(objects, ndays=60, ttvfast=True):
+    sim = generate(objects)
+    sim_data = integrate(sim, objects, ndays, ndays*24) # year long integration, dt=1 hour
+    return analyze(sim_data, ttvfast=ttvfast)
+
+def nlfit( xx,yy,yerr, objects, bounds=[-1,1,-1,1,-1,1], myloss='soft_l1'):
 
     # compute integrations for as long as the max epoch 
     ndays = np.round( 2*(max(xx)+1)*objects[1]['P'] ).astype(int)
@@ -20,22 +51,16 @@ def nested_nbody( xx,yy,yerr, objects, bounds=[-10.,10.,-10.,10.], myloss='soft_
     
     def model_sim(params):
         # follow same order as bounds 
-        objects[2]['m'] = params[0]
-        objects[2]['P'] = params[1]
-        objects[2]['e'] = params[2]
-        #objects[2]['omega'] = params[3]
-        
+        objects[1]['P'] = params[0]
+        objects[2]['m'] = params[2]
+        objects[2]['P'] = params[3]
         # create REBOUND simulation
-        sim = generate(objects)
-        sim_data = integrate(sim, objects, ndays, ndays*24) # year long integration, dt=30 min
-        return analyze(sim_data, ttvfast=True)
+        return get_ttv(objects,ndays)
 
     def myprior(cube, ndim, n_params):
         '''This transforms a unit cube into the dimensions of your prior space.'''
-        cube[0] = (bounds[1] - bounds[0])*cube[0]+bounds[0]
-        cube[1] = (bounds[3] - bounds[2])*cube[1]+bounds[2]
-        cube[2] = (bounds[5] - bounds[4])*cube[2]+bounds[4]
-        #cube[3] = (bounds[7] - bounds[6])*cube[3]+bounds[6]
+        for i in range(int(len(bounds)/2)): # for only the free params
+            cube[i] = (bounds[2*i+1] - bounds[2*i])*cube[i]+bounds[2*i]
 
     loss = {
         'linear': lambda z: z,
@@ -43,47 +68,65 @@ def nested_nbody( xx,yy,yerr, objects, bounds=[-10.,10.,-10.,10.], myloss='soft_
     }
 
     def myloglike(cube, ndim, n_params):
-        epochs,ttv0 = model_sim(cube)
+
+        # compute ttv from nbody 
+        epochs,ttv = model_sim(cube)
+
+        # subtract period from data 
+        ttv_data = yy - (cube[0]*xx+cube[1])
+
+        # fudge argument of periastron with shift of transit epochs 
         try:
             chis = []
-
             # only works for 1 planet 
-            # fudge argument of periastron with shift of transit epochs 
             for i in range(len(epochs)-len(xx)):
-                chi2 = ((yy-np.roll(ttv0,-i)[xx])/yerr)**2 
+                chi2 = ((ttv_data-np.roll(ttv,-i)[xx])/yerr)**2 
                 chis.append( -np.sum( loss[myloss](chi2) ) )
-            # is it possible to do a linear interpolation instead of roll? 
-
 
             # check return 
-            # plt.plot(xx,yy,'ko');plt.plot(epochs[xx],ttv0[xx],'r-'); plt.plot(epochs[xx],np.roll(ttv0,-2)[xx],'g-'); plt.show()
+            #plt.plot(xx,yy,'ko');plt.plot(epochs[xx],ttv[xx],'r-'); plt.plot(epochs[xx],np.roll(ttv,-2)[xx],'g-'); plt.show()
+            #import pdb; pdb.set_trace() 
+
             return np.max(chis)
         except:
             print('error with model, -999')
             import pdb; pdb.set_trace()
             return -999 
 
-    pymultinest.run(myloglike, myprior, int(len(bounds)/2), resume=False, evidence_tolerance=0.1, n_live_points=200, verbose=True)
+    pymultinest.run(myloglike, myprior, int(len(bounds)/2), resume=False,
+                    evidence_tolerance=0.1, sampling_efficiency=0.5,
+                    n_live_points=200, verbose=True)
 
-    # lets analyse the results
-    a = pymultinest.Analyzer(n_params=4) #retrieves the data that has been written to hard drive
+    a = pymultinest.Analyzer(n_params=4) 
+
+    # gets the marginalized posterior probability distributions 
     s = a.get_stats()
-    values = s['marginals'] # gets the marginalized posterior probability distributions 
-    posteriors = a.get_data()[:,2:]
-
-    print('in nested')
-    import pdb; pdb.set_trace() 
+    objects[1]['P'] = s['marginals'][0]['median']
+    objects[2]['m'] = s['marginals'][2]['median']
+    objects[2]['P'] = s['marginals'][3]['median']
     
-    # TODO return a new data object 
-    return a,posteriors
+    return objects, a.get_data(), s
+
+def shift_align(ttv_data,ttv,xx,yerr):
+    chis = []
+    # only works for 1 planet 
+    for i in range(len(ttv)-len(xx)):
+        chi2 = ((ttv_data-np.roll(ttv,-i)[xx])/yerr)**2 
+        chis.append( -np.sum(chi2) )
+    i = np.argmax(chis)
+    return np.roll(ttv, -i)
+
+# check return 
+# plt.plot(xx,yy,'ko');plt.plot(epochs[xx],ttv[xx],'r-'); plt.plot(epochs[xx],np.roll(ttv,-2)[xx],'g-'); plt.show()
+# import pdb; pdb.set_trace() 
 
 if __name__ == "__main__":
     
     # units: Msun, Days, au
     objects = [
         {'m':1.12},
-        {'m':0.28*mjup/msun, 'P':3.2888, 'inc':3.14159/2,'e':0, 'omega':0  }, 
-        {'m':1*mjup/msun, 'P':7.5, 'inc':3.14159/2,'e':0,  'omega':np.pi/4  }, 
+        {'m':0.28*mjup/msun, 'P':3.2888, 'inc':3.14159/2,'e':0 }, 
+        {'m':1*mjup/msun, 'P':7.5, 'inc':3.14159/2,'e':0 }, 
     ]
 
     # create REBOUND simulation
@@ -95,39 +138,141 @@ if __name__ == "__main__":
     # collect the analytics of interest from the simulation
     ttv_data = analyze(sim_data)
 
+    # TODO 
+    # report(sim_data)
+
     # simulate some observational data with noise 
     ttv = ttv_data['planets'][0]['ttv']
-    ttv += np.random.normal(0.25,0.25,len(ttv))/(24*60)
     epochs = np.arange(len(ttv))
-    err = np.random.normal(30,5,len(ttv))/(24*60*60)
+    ocdata = ttv + np.random.normal(1,0.5,len(ttv))/(24*60)
+    ttdata = ocdata + epochs*ttv_data['planets'][0]['P'] 
+    err = np.random.normal(120,30,len(ttv))/(24*60*60)
+    
+    # perform nested sampling linear fit to transit data    
+    lstats, lposteriors = lfit(epochs,ttdata,err, 
+                bounds=[ttv_data['planets'][0]['P']-0.5/24,ttv_data['planets'][0]['P']+0.5/24, min(ttdata)-0.5/24,ttv_data['planets'][0]['P']+0.5/24])
+    print("linear fit complete ")
+    import pdb; pdb.set_trace()
 
     # estimate priors
-    bounds = [5*mearth/msun, 2*mjup/msun, 6,9, 0.0,0.1]
+    bounds = []
+    objects[1]['P'] = lstats['marginals'][0]['median']
+    objects[2] = {'e': 0, 'inc': 1.570795} # delete mass and period for fitting routine  
+    bounds = [
+        lstats['marginals'][0]['5sigma'][0], lstats['marginals'][0]['5sigma'][1], # Period #1 (day)
+        lstats['marginals'][1]['5sigma'][0], lstats['marginals'][0]['5sigma'][1], # t0 #1 
+        objects[1]['m'] * 0.25, objects[1]['m'] * 5, # Mass #2 (msun)
+        objects[1]['P'] * 1.5, objects[1]['P'] * 4, # Period #2 (day)
+    ]
 
-    # TODO newobj create, create plotting routine for final solution and posters
-    newobj, posteriors = nested_nbody( epochs,ttv,err, objects, bounds )
+    # non linear fit with priors constrained from linear ephem fit 
+    newobj, posteriors, stats = nlfit( epochs,ttdata,err, objects, bounds )
 
-    f = corner.corner(posteriors, labels=['mass','per','ecc'],bins=int(np.sqrt(posteriors.shape[0])), plot_contours=False, plot_density=False)
-    plt.show() 
+    # generate the best fit model 
+    ndays = np.round( 2*(max(epochs)+1)*newobj[1]['P'] ).astype(int)
+    epoch,ttvfit = get_ttv(newobj, ndays)
 
-    dude() 
+    # compute limits
+    def limits(key='1sigma'):
+        obj = copy.deepcopy(newobj)
 
+        models = [] 
+        # Planet 1 period
+        obj[1]['P'] = stats['marginals'][0][key][1]
+        epoch,ttv = get_ttv(obj, ndays)
+        models.append( shift_align(ocdata,ttv,epochs,err) )
+        obj = copy.deepcopy(newobj)
+        obj[1]['P'] = stats['marginals'][0][key][0]
+        epoch,ttv = get_ttv(obj, ndays)
+        models.append( shift_align(ocdata,ttv,epochs,err) )
+        obj = copy.deepcopy(newobj)
 
-    sim = generate(objects)
-    sim_data = integrate(sim, objects, 180, 180*24) # year long integration, dt=1 hour
-    plt.errorbar(epochs,lcdata['ttv'],yerr=err,ls='none')
-    epochs,ttv = analyze(sim_data, ttvfast=True)
-    plt.plot(epochs,ttv,'r-')
+        # Planet 2 mass
+        obj[2]['m'] = stats['marginals'][2][key][1]
+        epoch,ttv = get_ttv(obj, ndays)
+        models.append( shift_align(ocdata,ttv,epochs,err) )
+        obj = copy.deepcopy(newobj)
+        obj[2]['m'] = stats['marginals'][2][key][0]
+        epoch,ttv = get_ttv(obj, ndays)
+        models.append( shift_align(ocdata,ttv,epochs,err) )
+        obj = copy.deepcopy(newobj)
+
+        # Planet 2 period 
+        obj[2]['P'] = stats['marginals'][3][key][1]
+        epoch,ttv = get_ttv(obj, ndays)
+        models.append( shift_align(ocdata,ttv,epochs,err) )
+        obj = copy.deepcopy(newobj)
+        obj[2]['P'] = stats['marginals'][3][key][0]
+        epoch,ttv = get_ttv(obj, ndays)
+        models.append( shift_align(ocdata,ttv,epochs,err) )
+        obj = copy.deepcopy(newobj)
+
+        # all parameters 
+        obj[1]['P'] = stats['marginals'][0][key][1]
+        obj[2]['m'] = stats['marginals'][2][key][1]
+        obj[2]['P'] = stats['marginals'][3][key][1]
+        epoch,ttv = get_ttv(obj, ndays)
+        models.append( shift_align(ocdata,ttv,epochs,err) )
+        obj = copy.deepcopy(newobj)
+        obj[1]['P'] = stats['marginals'][0][key][0]
+        obj[2]['m'] = stats['marginals'][2][key][0]
+        obj[2]['P'] = stats['marginals'][3][key][0]
+        epoch,ttv = get_ttv(obj, ndays)
+        models.append( shift_align(ocdata,ttv,epochs,err) )
+        obj = copy.deepcopy(newobj)
+
+        # some combinations
+        obj[2]['m'] = stats['marginals'][2][key][1]
+        obj[2]['P'] = stats['marginals'][3][key][1]
+        epoch,ttv = get_ttv(obj, ndays)
+        models.append( shift_align(ocdata,ttv,epochs,err) )
+        obj = copy.deepcopy(newobj)
+        obj[2]['m'] = stats['marginals'][2][key][0]
+        obj[2]['P'] = stats['marginals'][3][key][0]
+        epoch,ttv = get_ttv(obj, ndays)
+        models.append( shift_align(ocdata,ttv,epochs,err) )
+        obj = copy.deepcopy(newobj)
+        obj[2]['m'] = stats['marginals'][2][key][0]
+        obj[2]['P'] = stats['marginals'][3][key][1]
+        epoch,ttv = get_ttv(obj, ndays)
+        models.append( shift_align(ocdata,ttv,epochs,err) )
+        obj = copy.deepcopy(newobj)
+
+        return np.max(models,0),np.min(models,0)
+    
+    upper3, lower3 = limits('3sigma')
+
+    #mask = posteriors[:,1] < np.median(posteriors[:,1])
+    f = corner.corner(posteriors[:,2:], 
+                    labels=['Period (day)','t0','Mass 2 (Jup)', 'Period 2 (day)'],
+                    bins=int(np.sqrt(posteriors[mask].shape[0])), 
+                    range=[
+                        ( stats['marginals'][0]['5sigma'][0], stats['marginals'][0]['5sigma'][1]),
+                        ( stats['marginals'][1]['5sigma'][0], stats['marginals'][1]['5sigma'][1]),
+                        ( stats['marginals'][2]['median']-stats['marginals'][2]['sigma']*3,stats['marginals'][2]['median']+stats['marginals'][2]['sigma']*3),
+                        ( stats['marginals'][3]['median']-stats['marginals'][3]['sigma']*3,stats['marginals'][3]['median']+stats['marginals'][3]['sigma']*3),
+                    ],
+                    plot_contours=False, 
+                    plot_density=False)
     plt.show()
 
-    data = a.get_data()
-    plt.scatter( posteriors[:,0]*msun/mearth, posteriors[:,1],c=np.log2(data[:,1]),vmin=2.5,vmax=3.25 )
-    cbar = plt.colorbar()
-    cbar.set_label('-Log Likelihood')
-    plt.xlabel('Mass (Earth)')
-    plt.ylabel('Period (day)')
-    plt.title('WASP-126 c?')
+
+    # generate models between the uncertainties 
+    f,ax = plt.subplots(1, figsize=(7,4))
+    ax.errorbar(epochs,ocdata*24*60,yerr=err*24*60,ls='none',marker='o',label='Data',color='black')
+    ax.plot(epochs, ttv_data['planets'][0]['ttv']*24*60,ls='--', label='Truth',color='green')
+    ax.plot(epoch, ttvfit*24*60, label='Linear+Nbody ({:.1f})'.format(stats['global evidence']),color='red')
+    ax.fill_between(epoch,24*60*upper3,24*60*lower3,alpha=0.1,label='Nbody 3 sigma',color='red')
+    ax.axhline(ls='--',label='Linear ({:.1f})'.format(lstats['global evidence']))
+    ax.legend(loc='best')
+    ax.set_xlabel('Epochs')
+    ax.set_xlim([min(epochs),max(epochs)])
+    ax.set_ylabel('O-C [min]')
+    ax.grid(True)
     plt.show()
+
+
+
 
     '''
     

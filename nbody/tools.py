@@ -35,8 +35,8 @@ import pymultinest
 if not os.path.exists("chains"): os.mkdir("chains")
 
 
-
 def lfit(xx,yy,error, bounds=[-10.,10.,-10.,10.]):
+    # linear fit with nested sampling
 
     # prevents seg fault in MultiNest
     error[error==0] = 1
