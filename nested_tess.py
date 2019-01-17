@@ -19,19 +19,20 @@ if __name__ == "__main__":
     # units: Msun, Days, au
     # wasp-126 b
     objects = [
-        {'m':1.12},
-        {'m':0.28*mjup/msun, 'P':3.2888, 'inc':3.14159/2,'e':0 }, 
+        {'m':1},
+        {'m':0.28*mjup/msun, 'inc':3.14159/2,'e':0 }, 
         {}, # used for fitting 
     ]
 
     # load light curve fits 
-    lcdata = pickle.load( open('lcdata.pkl','rb') )
+    lcdata = pickle.load( open('lcdata193.pkl','rb') )
+    objects[1]['P'] = lcdata['p']
 
     # get values from each light curve 
-    ttdata = np.array( [lcdata['lcfits'][i]['NS']['parameters']['tm'] for i in range(len(lcdata['lcfits']))]).astype(np.float)[3:]
-    err = np.array( [lcdata['lcfits'][i]['NS']['errors']['tm'] for i in range(len(lcdata['lcfits']))] ).astype(np.float)[3:]
-    epochs =  np.array( [lcdata['lcfits'][i]['epoch'] for i in range(len(lcdata['lcfits']))] ).astype(np.int)[3:]
-    ocdata = lcdata['ttv'][3:]
+    ttdata = np.array( [lcdata['lcfits'][i]['NS']['parameters']['tm'] for i in range(len(lcdata['lcfits']))]).astype(np.float)
+    err = np.array( [lcdata['lcfits'][i]['NS']['errors']['tm'] for i in range(len(lcdata['lcfits']))] ).astype(np.float)
+    epochs =  np.array( [lcdata['lcfits'][i]['epoch'] for i in range(len(lcdata['lcfits']))] ).astype(np.int)
+    ocdata = lcdata['ttv']
 
     # perform nested sampling linear fit to transit data    
     lstats, lposteriors = lfit(epochs,ttdata,err, 
@@ -151,7 +152,7 @@ if __name__ == "__main__":
     f,ax = plt.subplots(1, figsize=(7,4))
     ax.errorbar(epochs,ocdata*24*60,yerr=err*24*60,ls='none',marker='o',label='Data',color='black')
     ax.plot(epoch, ttvfit*24*60, label='Linear+Nbody ({:.1f})'.format(stats['global evidence']),color='red')
-    ax.fill_between(epoch,24*60*upper3,24*60*lower3,alpha=0.1,label='Nbody 3 sigma',color='red')
+    #ax.fill_between(epoch,24*60*upper3,24*60*lower3,alpha=0.1,label='Nbody 3 sigma',color='red')
     ax.axhline(ls='--',label='Linear ({:.1f})'.format(lstats['global evidence']))
     ax.legend(loc='best')
     ax.set_xlabel('Epochs')

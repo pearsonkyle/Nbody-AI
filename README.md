@@ -133,7 +133,9 @@ if __name__ == "__main__":
 
 ```
 Posteriors from the TTV retrieval will look something like this: 
-![](figures/nested-nbody.png)
+![](figures/nested_nbody_posteriors.png)
+
+![](figures/nested_nbody_fit.png)
 
 Hopefully, that is enough information to get you started on fitting observations. Please feel free to contact me if you have difficulty using this code. 
 

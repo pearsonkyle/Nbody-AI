@@ -41,7 +41,7 @@ def get_ttv(objects, ndays=60, ttvfast=True):
     sim_data = integrate(sim, objects, ndays, ndays*24) # year long integration, dt=1 hour
     return analyze(sim_data, ttvfast=ttvfast)
 
-def nlfit( xx,yy,yerr, objects, bounds=[-1,1,-1,1,-1,1], myloss='linear'):
+def nlfit( xx,yy,yerr, objects, bounds=[-1,1,-1,1,-1,1], myloss='soft_l1'):
 
     # compute integrations for as long as the max epoch 
     ndays = np.round( 2*(max(xx)+1)*objects[1]['P'] ).astype(int)
