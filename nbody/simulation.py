@@ -175,7 +175,7 @@ def analyze(m, ttvfast=False):
         ttv,per,t0 = TTV(np.arange(len(tt)),tt )
 
         # periodogram of o-c                
-        freq,power,fdata,pp = lomb_scargle( np.arange(len(ttv)),ttv, minfreq=1./180,maxfreq=1./2,npeaks=3)
+        freq,power = lomb_scargle( np.arange(len(ttv)),ttv, minfreq=1./180,maxfreq=1./2,npeaks=3)
 
         # parameterize periodogram of o-c with 3 
         z = np.zeros((3,3))
@@ -190,16 +190,9 @@ def analyze(m, ttvfast=False):
         pdata['tt'] = tt
         pdata['ttv'] = ttv
         pdata['max'] = maxavg(ttv)
-        pdata['fdata'] = fdata
         pdata['freq'] = freq
         pdata['power'] = power
-        pdata['ocamp'] = fdata[:,1]
         
-        # avoid dividing by zero 
-        fdata[:,0][ fdata[:,0]==0 ] = 1
-        pdata['ocper'] = 1./fdata[:,0]
-        pdata['ocper'][pdata['ocper'] == 1]  = 0
-
         pdata['pp'] = pp
         pdata['x'] = m['pdata'][j-1]['x'][::10]
         pdata['y'] = m['pdata'][j-1]['z'][::10]
@@ -236,9 +229,9 @@ def report(data, savefile=None):
     #print('expected RV:',u)
 
     # create table stuff 
-    keys = ['mass','a','P','inc','e','max','ocper','ocamp',]
-    units = [msun/mearth,1,1,1,1,24*60,1,24*60]
-    rounds = [2,3,2,2,3,1,1,1]
+    keys = ['mass','a','P','inc','e','max']
+    units = [msun/mearth,1,1,1,1,24*60]
+    rounds = [2,3,2,2,3,1,1]
 
     # make 2d list for table 
     tdata=[]
@@ -252,14 +245,11 @@ def report(data, savefile=None):
         'inc':'Inclination (deg)',
         'e':'Eccentricity',
         'max':'TTV Max Avg (min)',
-        'ocper':'TTV Periods (epoch)',
-        'ocamp':'TTV Amplitudes (min)'
         # TODO add a transiting flag b.c hard to see from plots if each planet transits
     }
     row_labels = [ tinfo[k] for k in keys ]
     col_labels = [ "Planet {}".format(i+1) for i in range(len(data['planets']))]
 
-    maxocper = 0
     # for each planet in the system 
     for j in range(1,len(data['objects'])):
         
@@ -267,16 +257,14 @@ def report(data, savefile=None):
         ax[0].plot( data['planets'][j-1]['x'], data['planets'][j-1]['y'],label='Planet {}'.format(j),lw=0.5,alpha=0.5 )
         ax[3].plot(data['planets'][j-1]['ttv']*24*60,label='Planet {}'.format(j) )  # convert days to minutes
 
-        ax[5].plot( 1./data['planets'][j-1]['freq'], data['planets'][j-1]['power'],label='Planet {}'.format(j) )
-    
+        ax[5].plot( 1./data['planets'][j-1]['freq'], data['planets'][j-1]['power'], label='Planet {}'.format(j) )
+
         # populate table data 
         for i,k in enumerate(keys):
             tdata[i][j-1] = np.round( data['planets'][j-1][k] * units[i], rounds[i])
 
             if k == 'inc':
                 tdata[i][j-1] = np.round( np.rad2deg(data['planets'][j-1][k]) * units[i], rounds[i])
-            
-        maxocper = max( np.max(data['planets'][j-1]['ocper']), maxocper )
 
 
     table = ax[1].table(cellText=tdata, 
@@ -305,7 +293,7 @@ def report(data, savefile=None):
         
     ax[5].set_xlabel('Period (epoch)')
     ax[5].set_ylabel('|O-C| Power' )
-    ax[5].set_xlim([1, min(30,1.5*maxocper)])
+    ax[5].set_xlim([1,30])
     ax[5].legend(loc='best')
 
     if savefile:

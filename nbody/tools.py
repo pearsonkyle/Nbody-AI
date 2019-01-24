@@ -143,7 +143,7 @@ def lomb_scargle(t,y,dy=None, minfreq=1./365, maxfreq=1, npeaks=0, peaktol=0.1):
         pp = [-1,-1,-1]
     # power probabilities 
     # This tells us that to attain a 10% false alarm probability requires the highest periodogram peak to be approximately XX; 5% requires XX, and 1% requires XX.
-
+    '''
     # find peaks in periodogram 
     peaks,amps = find_peaks(power,height=peaktol)
     Nterms = min(npeaks,len(peaks))
@@ -177,5 +177,5 @@ def lomb_scargle(t,y,dy=None, minfreq=1./365, maxfreq=1, npeaks=0, peaktol=0.1):
         pp = -1 
         #plt.plot( frequency, power) 
         #import pdb; pdb.set_trace() 
-
-    return frequency,power,fdata,pp
+    '''
+    return frequency,power
