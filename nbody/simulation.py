@@ -154,6 +154,7 @@ def analyze(m, ttvfast=False):
         return np.arange(len(ttv)),ttv
 
     RV = np.diff(m['star']['x'])*1.496e11*m['dt'] # measurements -> seconds
+    
     freq,power,fdata,pp = lomb_scargle( m['times'][1:], RV, npeaks=3)
 
     data = {

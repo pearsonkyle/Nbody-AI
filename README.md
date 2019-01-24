@@ -137,7 +137,6 @@ Posteriors from the TTV retrieval will look something like this:
 
 ![](figures/nested_nbody_fit.png)
 
-Hopefully, that is enough information to get you started on fitting observations. Please feel free to contact me if you have difficulty using this code. 
 
 ## File Guide 
 - `testnest.py` - a program to test bayesian inference using MultiNest
@@ -153,13 +152,3 @@ If you use any of these algorithms in your work please include Kyle A. Pearson a
 - implement RV fitting to reduce degeneracies for fitting inclination (show plot) 
 - include multiple O-C signals for transiting multiplanet systems
 - use NN clustering technique to estimate priors from simulation archive
-
-## TO DO
-- TESS TTV documentation (download new sector data for TOIs)
-- Bayesian evidence for non-linear vs linear ephemeris 
-- create new fitting routine for period + t0 + mass + per + ecc
-- write!!
-
-# other todos 
-- NESSI multi object photometry
-- SOAR slit mask 

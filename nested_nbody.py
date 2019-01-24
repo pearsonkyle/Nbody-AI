@@ -94,7 +94,7 @@ def nlfit( xx,yy,yerr, objects, bounds=[-1,1,-1,1,-1,1], myloss='soft_l1'):
             return -999 
 
     pymultinest.run(myloglike, myprior, int(len(bounds)/2), resume=False,
-                    evidence_tolerance=0.5, sampling_efficiency=0.5,
+                    evidence_tolerance=0.5, sampling_efficiency=0.5, n_clustering_params=2,
                     n_live_points=200, verbose=True)
 
     a = pymultinest.Analyzer(n_params=4) 

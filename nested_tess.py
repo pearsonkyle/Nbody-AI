@@ -15,24 +15,23 @@ from nested_nbody import lfit, get_ttv, nlfit, shift_align
 
 if __name__ == "__main__":
     
-    
     # units: Msun, Days, au
     # wasp-126 b
     objects = [
-        {'m':1},
+        {'m':1.12},
         {'m':0.28*mjup/msun, 'inc':3.14159/2,'e':0 }, 
         {}, # used for fitting 
     ]
 
     # load light curve fits 
-    lcdata = pickle.load( open('lcdata193.pkl','rb') )
+    lcdata = pickle.load( open('lcdata114.pkl','rb') )
     objects[1]['P'] = lcdata['p']
 
     # get values from each light curve 
-    ttdata = np.array( [lcdata['lcfits'][i]['NS']['parameters']['tm'] for i in range(len(lcdata['lcfits']))]).astype(np.float)
-    err = np.array( [lcdata['lcfits'][i]['NS']['errors']['tm'] for i in range(len(lcdata['lcfits']))] ).astype(np.float)
-    epochs =  np.array( [lcdata['lcfits'][i]['epoch'] for i in range(len(lcdata['lcfits']))] ).astype(np.int)
-    ocdata = lcdata['ttv']
+    ttdata = np.array( [lcdata['lcfits'][i]['NS']['parameters']['tm'] for i in range(len(lcdata['lcfits']))]).astype(np.float)[2:]
+    err = np.array( [lcdata['lcfits'][i]['NS']['errors']['tm'] for i in range(len(lcdata['lcfits']))] ).astype(np.float)[2:]
+    epochs =  np.array( [lcdata['lcfits'][i]['epoch'] for i in range(len(lcdata['lcfits']))] ).astype(np.int)[2:]
+    ocdata = lcdata['ttv'][2:]
 
     # perform nested sampling linear fit to transit data    
     lstats, lposteriors = lfit(epochs,ttdata,err, 
@@ -47,7 +46,7 @@ if __name__ == "__main__":
     bounds = [
         lstats['marginals'][0]['5sigma'][0], lstats['marginals'][0]['5sigma'][1], # Period #1 (day)
         lstats['marginals'][1]['5sigma'][0], lstats['marginals'][1]['5sigma'][1], # t0 #1 
-        0.25*mjup/msun, 1.75*mjup/msun,
+        mearth/msun, 4*mjup/msun,
         #objects[1]['m'] * 0.25, objects[1]['m'] * 5, # Mass #2 (msun)
         objects[1]['P'] * 1.5, objects[1]['P'] * 4, # Period #2 (day)
     ]
@@ -133,8 +132,9 @@ if __name__ == "__main__":
     upper3, lower3 = limits('3sigma')
 
     mask = posteriors[:,1] < np.median(posteriors[:,1])
-    f = corner.corner(posteriors[:,2:], 
-                    labels=['Period (day)','t0','Mass 2 (Jup)', 'Period 2 (day)'],
+    #posteriors[:,2] *= msun/mjup
+    f = corner.corner(posteriors[mask,2:], 
+                    labels=['Period (day)','t0','Mass 2 (msun)', 'Period 2 (day)'],
                     bins=int(np.sqrt(posteriors.shape[0])), 
                     range=[
                         ( stats['marginals'][0]['5sigma'][0], stats['marginals'][0]['5sigma'][1]),

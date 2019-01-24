@@ -128,7 +128,7 @@ def make_sin(t, pars, freqs=-1):
 
     return fn 
 
-def lomb_scargle(t,y,dy=None, minfreq=1./365, maxfreq=1, npeaks=3, peaktol=0.1):
+def lomb_scargle(t,y,dy=None, minfreq=1./365, maxfreq=1, npeaks=0, peaktol=0.1):
     # periodogram
     if isinstance(dy,np.ndarray):
         ls = LombScargle(t,y,dy)
@@ -137,7 +137,10 @@ def lomb_scargle(t,y,dy=None, minfreq=1./365, maxfreq=1, npeaks=3, peaktol=0.1):
 
     frequency,power = ls.autopower(minimum_frequency=minfreq, maximum_frequency=maxfreq, samples_per_peak=10)
     probabilities = [0.1, 0.05, 0.01]
-    pp = ls.false_alarm_level(probabilities)  
+    try:
+        pp = ls.false_alarm_level(probabilities)  
+    except:
+        pp = [-1,-1,-1]
     # power probabilities 
     # This tells us that to attain a 10% false alarm probability requires the highest periodogram peak to be approximately XX; 5% requires XX, and 1% requires XX.
 
@@ -156,7 +159,7 @@ def lomb_scargle(t,y,dy=None, minfreq=1./365, maxfreq=1, npeaks=3, peaktol=0.1):
         for i in range(Nterms):
             fdata[i,0] = frequency[ int(peaks[i]) ]
             fdata[i,1] = np.sort(amps['peak_heights'])[::-1][i] * maxavg(y) #amplitude estimate
-
+    
         # ignore fitting frequencies 
         priors = fdata[:,1:].flatten()
         bounds = np.array( [ [0, max(y)*1.5], [-2*np.pi,2*np.pi] ]*Nterms ).T
@@ -168,9 +171,8 @@ def lomb_scargle(t,y,dy=None, minfreq=1./365, maxfreq=1, npeaks=3, peaktol=0.1):
         res = least_squares(fit_wave, x0=priors, bounds=bounds)
 
         fdata[:,1:] = res.x.reshape(Nterms,-1)
-
+        
     elif Nterms == 0:
-        print('Number of terms is 0')
         fdata = np.zeros( (1,3) )
         pp = -1 
         #plt.plot( frequency, power) 
