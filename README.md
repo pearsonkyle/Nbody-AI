@@ -48,8 +48,6 @@ ttv_data = {
 
         'freq': ndarray,    # frequencys in periodogram (1./day)
         'power': ndarray,   # periodogram power from Lomb Scargle routine
-        'fdata': ndarray,   # (N,3) array of sinwave fits to data (frequency, amplitude, phase shift)
-        'pp': ndarray,     # Power values for false-alarm probabilities at 1%, 5% and 10% rates
     },
 
     'planets':[  # list of planet parameter dictionaries 
@@ -72,10 +70,6 @@ ttv_data = {
             # periodogram data of o-c signal 
             'freq': ndarray,    # frequencys in periodogram (1./epoch)
             'power': ndarray,   # periodogram power from Lomb Scargle routine
-            'fdata': ndarray,   # (N,3) array of sinwave fits to data (freq, amplitude, phase shift)
-            'ocamp': ndarray,  # amplitude values to sin wave fits to O-C data
-            'ocper': ndarray,  # Periods from periodogram peaks above a tolerance (~0.1)
-            'pp': ndarray,     # Power values for false-alarm probabilities at 1%, 5% and 10% rates
         }
     ]
 }
@@ -148,7 +142,7 @@ Posteriors from the TTV retrieval will look something like this:
 ## Citation 
 If you use any of these algorithms in your work please include Kyle A. Pearson as a coauthor. Current institution: Lunar and Planetary Laboratory, University of Arizona, 1629 East University Boulevard, Tucson, AZ, 85721, USA
 
-## Ways to improve code
-- implement RV fitting to reduce degeneracies for fitting inclination (show plot) 
+## Future updates
+- implement RV fitting to reduce degeneracies
 - include multiple O-C signals for transiting multiplanet systems
-- use NN clustering technique to estimate priors from simulation archive
+- use NN or clustering technique to estimate priors from simulation archive
