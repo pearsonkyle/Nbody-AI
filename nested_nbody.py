@@ -126,7 +126,7 @@ if __name__ == "__main__":
     objects = [
         {'m':1.12},
         {'m':0.28*mjup/msun, 'P':3.2888, 'inc':3.14159/2,'e':0 }, 
-        {'m':1*mjup/msun, 'P':7.5, 'inc':3.14159/2,'e':0 }, 
+        {'m':0.5*mjup/msun, 'P':7.5, 'inc':3.14159/2,'e':0 }, 
     ]
 
     # create REBOUND simulation
