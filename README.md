@@ -119,25 +119,20 @@ if __name__ == "__main__":
     # estimate priors
     bounds = [5*mearth/msun, 2*mjup/msun, 6,9, 0.0,0.1]
 
-    # TODO newobj create, create plotting routine for final solution and posters
+    # use nested sampling retrieval 
     newobj, posteriors = nested_nbody( epochs,ttv,err, objects, bounds )
-
-    f = corner.corner(posteriors, labels=['mass','per','ecc'],bins=int(np.sqrt(posteriors.shape[0])), plot_contours=False, plot_density=False)
-    plt.show() 
-
 ```
 Posteriors from the TTV retrieval will look something like this: 
 ![](figures/nested_nbody_posteriors.png)
 
 ![](figures/nested_nbody_fit.png)
 
-
 ## File Guide 
 - `testnest.py` - a program to test bayesian inference using MultiNest
-- Lomb Scargle Periodogram test
-- Accuracy vs timeDelta 
 - `nbody_parameter_explore.py` - see how various parameters impact results from the N-body simulations
 - `generate_simulations.py` - easily generate multiple simulations for machine learning projects
+- `solarsystem_nbody.py` - an N-body calculation for our Solar System
+- `GP_RM_relation.py` - Use Gaussian Process Regression to model Mass-Radius relation in known exoplanet systems
 
 ## Citation 
 If you use any of these algorithms in your work please include Kyle A. Pearson as a coauthor. Current institution: Lunar and Planetary Laboratory, University of Arizona, 1629 East University Boulevard, Tucson, AZ, 85721, USA

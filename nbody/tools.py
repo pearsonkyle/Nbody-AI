@@ -30,42 +30,6 @@ mms = [40,18, 6.5,3.2,2.1,1.7,1.3,1.1 ,1,0.93,0.78,0.69,0.47,0.21,0.1]  # M/Msun
 rrs = [18,7.4,3.8,2.5,1.7,1.3,1.2,1.05,1,0.93,0.85,0.74,0.63,0.32,0.13] # R/Rsun
 m2r_star = interp1d(mms,rrs) # convert solar mass to solar radius
 
-import os
-import pymultinest
-if not os.path.exists("chains"): os.mkdir("chains")
-
-
-def lfit(xx,yy,error, bounds=[-10.,10.,-10.,10.]):
-    # linear fit with nested sampling
-
-    # prevents seg fault in MultiNest
-    error[error==0] = 1
-    
-    def model_lin(params):
-        return xx*params[0]+params[1]
-
-    def myprior_lin(cube, ndim, n_params):
-        '''This transforms a unit cube into the dimensions of your prior space.'''
-        cube[0] = (bounds[1] - bounds[0])*cube[0]+bounds[0]
-        cube[1] = (bounds[3] - bounds[2])*cube[1]+bounds[2]
-
-    def myloglike_lin(cube, ndim, n_params):
-        loglike = -np.sum( ((yy-model_lin(cube))/error)**2 ) 
-        return loglike/2.
-
-    pymultinest.run(myloglike_lin, myprior_lin, 2, resume = False, sampling_efficiency = 0.1)
-
-    # lets analyse the results
-    a = pymultinest.Analyzer(n_params=2) #retrieves the data that has been written to hard drive
-    s = a.get_stats()
-    values_lin = s['marginals'] # gets the marginalized posterior probability distributions 
-
-    print( 'Parameter values:' )
-    print( '1:',values_lin[0]['median'],'pm',values_lin[0]['sigma'])
-    print( '2:',values_lin[1]['median'],'pm',values_lin[1]['sigma'])
-
-    return values_lin[0]['median'],values_lin[0]['sigma'],values_lin[1]['median'],values_lin[1]['sigma']
-
 def hill_sphere(objs,i=1):
     '''
     Compute the hill sphere radius between the star and i^th planet
@@ -99,15 +63,12 @@ def TTV(epochs, tt):
     N = len(epochs)
     # linear fit to transit times 
     A = np.vstack([np.ones(N), epochs]).T
-    b, m = np.linalg.lstsq(A, tt,rcond=None)[0]
+    try:
+        b, m = np.linalg.lstsq(A, tt, rcond=None)[0]
+    except:
+        b, m = np.linalg.lstsq(A, tt)[0]
     ttv = (tt-m*np.array(epochs)-b)
     return [ttv,m,b]
-
-def TTVfit(epochs, tt, tterr):
-    pest = np.mean(np.diff(tt)/np.diff(epochs))
-    p,perr,t0,t0err = lfit(epochs, tt, tterr, bounds=[pest-1,pest+1,1300,max(tt)])
-    ttv = tt - (p*epochs+t0)
-    return ttv,[p,perr],[t0,t0err]
 
 def make_sin(t, pars, freqs=-1):
     fn = 0 

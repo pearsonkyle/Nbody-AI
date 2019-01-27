@@ -132,7 +132,7 @@ def integrate(sim, objects, Ndays, Noutputs):
         'star':star,
         'times':times,
         'objects':objects,
-        'dt': Noutputs/(365*24*60*60) # conversion factor to get seconds for RV semi-amp
+        'dt': Noutputs/(Ndays*24*60*60) # conversion factor to get seconds for RV semi-amp
     })
 
     return sim_data 
@@ -155,11 +155,11 @@ def analyze(m, ttvfast=False):
 
     RV = np.diff(m['star']['x'])*1.496e11*m['dt'] # measurements -> seconds
     
-    freq,power,fdata,pp = lomb_scargle( m['times'][1:], RV, npeaks=3)
+    freq,power = lomb_scargle( m['times'][1:], RV, npeaks=3)
 
     data = {
         'times':m['times'],
-        'RV':{'freq':freq, 'power':power, 'signal':RV, 'fdata':fdata, 'max':maxavg(RV),'pp':pp },
+        'RV':{'freq':freq, 'power':power, 'signal':RV, 'max':maxavg(RV)},
         'mstar': m['objects'][0]['m'],
         'planets':[],
         'objects':m['objects']
@@ -172,14 +172,15 @@ def analyze(m, ttvfast=False):
 
         # compute transit times 
         tt = transit_times( m['pdata'][j-1]['x'], m['star']['x'], m['times'] )
-        ttv,per,t0 = TTV(np.arange(len(tt)),tt )
+        if len(tt)>=3:
+            ttv,per,t0 = TTV(np.arange(len(tt)),tt )
+        else:
+            per = m['objects'][j]['P']
+            t0 = 0 
+            ttv = [0]
 
         # periodogram of o-c                
-        freq,power = lomb_scargle( np.arange(len(ttv)),ttv, minfreq=1./180,maxfreq=1./2,npeaks=3)
-
-        # parameterize periodogram of o-c with 3 
-        z = np.zeros((3,3))
-        fdata = np.r_[fdata, z][:3,:3]
+        freq,power = lomb_scargle( np.arange(len(ttv)),ttv, minfreq=1./180,maxfreq=1./2,npeaks=0)
 
         # save data 
         for k in ['e','inc','a']:
@@ -193,7 +194,6 @@ def analyze(m, ttvfast=False):
         pdata['freq'] = freq
         pdata['power'] = power
         
-        pdata['pp'] = pp
         pdata['x'] = m['pdata'][j-1]['x'][::10]
         pdata['y'] = m['pdata'][j-1]['z'][::10]
         data['planets'].append(pdata)
@@ -203,7 +203,7 @@ def analyze(m, ttvfast=False):
 def report(data, savefile=None):
 
     # set up simulation summary report 
-    f = plt.figure( figsize=(16,8) ) 
+    f = plt.figure( figsize=(18,8) ) 
     plt.subplots_adjust()
     ax = [ plt.subplot2grid( (2,3), (0,0) ), # x,y plot
             plt.subplot2grid( (2,3), (1,0) ), # table data 
@@ -212,10 +212,10 @@ def report(data, savefile=None):
             plt.subplot2grid( (2,3), (0,2) ), # lomb scargle for RV semi-amplitude
             plt.subplot2grid( (2,3), (1,2) ) # lomb scargle for o-c
         ]
-    plt.subplots_adjust(top=0.96, bottom=0.07, left=0.10, right=0.96, hspace=0.27, wspace=0.27)
+    plt.subplots_adjust(top=0.96, bottom=0.07, left=0.13, right=0.98, hspace=0.3, wspace=0.3)
 
     ax[2].plot(data['times'][1:],data['RV']['signal'],'k-' )
-    ax[2].set_xlim([0, 4*data['planets'][-1]['P'] ])
+    ax[2].set_xlim([0, data['planets'][-1]['P'] ])
     ax[2].set_ylabel('RV semi-amplitude (m/s)')
     ax[2].set_xlabel('time (day)')
 
@@ -245,19 +245,19 @@ def report(data, savefile=None):
         'inc':'Inclination (deg)',
         'e':'Eccentricity',
         'max':'TTV Max Avg (min)',
-        # TODO add a transiting flag b.c hard to see from plots if each planet transits
     }
     row_labels = [ tinfo[k] for k in keys ]
-    col_labels = [ "Planet {}".format(i+1) for i in range(len(data['planets']))]
+    col_labels = [ "P {}".format(i+1) for i in range(len(data['planets']))]
 
     # for each planet in the system 
     for j in range(1,len(data['objects'])):
         
         # plot orbits
         ax[0].plot( data['planets'][j-1]['x'], data['planets'][j-1]['y'],label='Planet {}'.format(j),lw=0.5,alpha=0.5 )
-        ax[3].plot(data['planets'][j-1]['ttv']*24*60,label='Planet {}'.format(j) )  # convert days to minutes
 
-        ax[5].plot( 1./data['planets'][j-1]['freq'], data['planets'][j-1]['power'], label='Planet {}'.format(j) )
+        if len(data['planets'][j-1]['ttv']) >= 2:
+            ax[3].plot(data['planets'][j-1]['ttv']*24*60,label='Planet {}'.format(j) )  # convert days to minutes
+            ax[5].plot( 1./data['planets'][j-1]['freq'], data['planets'][j-1]['power'], label='Planet {}'.format(j) )
 
         # populate table data 
         for i,k in enumerate(keys):
@@ -266,11 +266,10 @@ def report(data, savefile=None):
             if k == 'inc':
                 tdata[i][j-1] = np.round( np.rad2deg(data['planets'][j-1][k]) * units[i], rounds[i])
 
-
     table = ax[1].table(cellText=tdata, 
                         colLabels=col_labels,
                         rowLabels=row_labels,
-                        colWidths=[0.2,0.2,0.2],
+                        colWidths=[0.1]*len(col_labels),
                         loc='center')
 
     ax[1].set_title('Stellar mass: {:.2f} Msun'.format(data['mstar']) )

@@ -101,11 +101,14 @@ def nlfit( xx,yy,yerr, objects, bounds=[-1,1,-1,1,-1,1], myloss='soft_l1'):
 
     # gets the marginalized posterior probability distributions 
     s = a.get_stats()
-    objects[1]['P'] = s['marginals'][0]['median']
-    objects[2]['m'] = s['marginals'][2]['median']
-    objects[2]['P'] = s['marginals'][3]['median']
+    posteriors = a.get_data()
+
+    mask = posteriors[:,1] < np.percentile(posteriors[:,1],25)
+    objects[1]['P'] = np.mean(posteriors[mask,2])
+    objects[2]['m'] = np.mean(posteriors[mask,4])
+    objects[2]['P'] = np.mean(posteriors[mask,5])
     
-    return objects, a.get_data(), s
+    return objects, posteriors, s
 
 def shift_align(ttv_data,ttv,xx,yerr):
     chis = []
@@ -116,6 +119,53 @@ def shift_align(ttv_data,ttv,xx,yerr):
     i = np.argmax(chis)
     return np.roll(ttv, -i)
 
+def get_stats(posterior,percentile):
+    
+    stats = []
+    mask = posterior[:,1] < np.percentile(posterior[:,1],percentile)
+
+    for i in range(2, posterior.shape[1]):
+        b = list(zip(posterior[mask,0], posterior[mask,i]))
+        b.sort(key=lambda x: x[1])
+        b = np.array(b)
+        b[:,0] = b[:,0].cumsum()
+        sig5 = 0.5 + 0.9999994 / 2.
+        sig3 = 0.5 + 0.9973 / 2.
+        sig2 = 0.5 + 0.95 / 2.
+        sig1 = 0.5 + 0.6826 / 2.
+        bi = lambda x: np.interp(x, b[:,0], b[:,1], left=b[0,1], right=b[-1,1])
+        
+        low1 = bi(1 - sig1)
+        high1 = bi(sig1)
+        low2 = bi(1 - sig2)
+        high2 = bi(sig2)
+        low3 = bi(1 - sig3)
+        high3 = bi(sig3)
+        low5 = bi(1 - sig5)
+        high5 = bi(sig5)
+        median = bi(0.5)
+        q1 = bi(0.75)
+        q3 = bi(0.25)
+        q99 = bi(0.99)
+        q01 = bi(0.01)
+        q90 = bi(0.9)
+        q10 = bi(0.1)
+        
+        stats.append({
+            'median': median,
+            'sigma': (high1 - low1) / 2.,
+            '1sigma': [low1, high1],
+            '2sigma': [low2, high2],
+            '3sigma': [low3, high3],
+            '5sigma': [low5, high5],
+            'q75%': q1,
+            'q25%': q3,
+            'q99%': q99,
+            'q01%': q01,
+            'q90%': q90,
+            'q10%': q10,
+        })
+    return stats
 # check return 
 # plt.plot(xx,yy,'ko');plt.plot(epochs[xx],ttv[xx],'r-'); plt.plot(epochs[xx],np.roll(ttv,-2)[xx],'g-'); plt.show()
 # import pdb; pdb.set_trace() 
@@ -126,7 +176,7 @@ if __name__ == "__main__":
     objects = [
         {'m':1.12},
         {'m':0.28*mjup/msun, 'P':3.2888, 'inc':3.14159/2,'e':0 }, 
-        {'m':0.5*mjup/msun, 'P':7.5, 'inc':3.14159/2,'e':0 }, 
+        {'m':0.25*mjup/msun, 'P':7.5, 'inc':3.14159/2,'e':0 }, 
     ]
 
     # create REBOUND simulation
@@ -138,22 +188,19 @@ if __name__ == "__main__":
     # collect the analytics of interest from the simulation
     ttv_data = analyze(sim_data)
 
-    # TODO 
-    # report(sim_data)
+    #report(ttv_data)
 
     # simulate some observational data with noise 
     ttv = ttv_data['planets'][0]['ttv']
     epochs = np.arange(len(ttv))
     ocdata = ttv + np.random.normal(1,0.5,len(ttv))/(24*60)
     ttdata = ocdata + epochs*ttv_data['planets'][0]['P'] 
-    err = np.random.normal(120,30,len(ttv))/(24*60*60)
+    err = np.random.normal(90,30,len(ttv))/(24*60*60)
     
     # perform nested sampling linear fit to transit data    
     lstats, lposteriors = lfit(epochs,ttdata,err, 
                 bounds=[ttv_data['planets'][0]['P']-6/24,ttv_data['planets'][0]['P']+6/24, min(ttdata)-1/24,ttv_data['planets'][0]['P']+1/24])
-    print("linear fit complete ")
-    import pdb; pdb.set_trace()
-
+    
     # estimate priors
     bounds = []
     objects[1]['P'] = lstats['marginals'][0]['median']
@@ -165,8 +212,10 @@ if __name__ == "__main__":
         objects[1]['P'] * 1.5, objects[1]['P'] * 4, # Period #2 (day)
     ]
     print(bounds)
+
     # non linear fit with priors constrained from linear ephem fit 
     newobj, posteriors, stats = nlfit( epochs,ttdata,err, objects, bounds )
+    stats['marginals'] = get_stats(posteriors,30)
 
     # generate the best fit model 
     ndays = np.round( 2*(max(epochs)+1)*newobj[1]['P'] ).astype(int)
@@ -243,21 +292,22 @@ if __name__ == "__main__":
         return np.max(models,0),np.min(models,0)
     
     upper3, lower3 = limits('3sigma')
-
-    mask = posteriors[:,1] < np.median(posteriors[:,1])
-    f = corner.corner(posteriors[mask,2:], 
-                    labels=['Period (day)','t0','Mass 2 (Jup)', 'Period 2 (day)'],
+    
+    f = corner.corner(posteriors[:,2:], 
+                    labels=['Period (day)','t0','Mass 2 (sun)', 'Period 2 (day)'],
                     bins=int(np.sqrt(posteriors.shape[0])), 
                     range=[
                         ( stats['marginals'][0]['5sigma'][0], stats['marginals'][0]['5sigma'][1]),
                         ( stats['marginals'][1]['5sigma'][0], stats['marginals'][1]['5sigma'][1]),
-                        ( max(0,stats['marginals'][2]['median']-stats['marginals'][2]['sigma']*3),stats['marginals'][2]['median']+stats['marginals'][2]['sigma']*3),
-                        ( stats['marginals'][3]['median']-stats['marginals'][3]['sigma']*3,stats['marginals'][3]['median']+stats['marginals'][3]['sigma']*3),
+                        ( stats['marginals'][2]['5sigma'][0], stats['marginals'][2]['5sigma'][1]),
+                        ( stats['marginals'][3]['5sigma'][0], stats['marginals'][3]['5sigma'][1]),
                     ],
-                    plot_contours=False, 
+                    truths=[lstats['marginals'][0]['median'], lstats['marginals'][1]['median'], objects[2]['m'], objects[2]['P'] ],
+                    #no_fill_contours=True,
+                    truth_color='green',
+                    plot_contours=False,
                     plot_density=False)
     plt.show()
-
 
     # generate models between the uncertainties 
     f,ax = plt.subplots(1, figsize=(7,4))
@@ -273,8 +323,31 @@ if __name__ == "__main__":
     ax.grid(True)
     plt.show()
 
+    
+    f,ax = plt.subplots( 2,2, figsize=(7,4))
+    im = ax[1,0].scatter(posteriors[:,4]*msun/mearth,posteriors[:,5],c=posteriors[:,1],vmin=min(posteriors[:,1]),vmax=np.percentile(posteriors[:,1],50)); 
+    f.colorbar(im, ax=ax[1,0], orientation='vertical')
+    ax[1,0].set_xlabel("Planet 2 Mass (Earth)")
+    ax[1,0].set_ylabel("Planet 2 Period (day)")
+    bins_mass = np.linspace( min(posteriors[:,4])*msun/mearth,max(posteriors[:,4])*msun/mearth,int(np.sqrt(posteriors.shape[0])) )
+    bins_per = np.linspace( min(posteriors[:,5]),max(posteriors[:,5]),2*int(np.sqrt(posteriors.shape[0])) )
+    ax[0,1].set_axis_off()
+    ax[1,1].set_xlabel("Planet 2 Period (day)")
+
+    for i in [100,25]:
+        mask = posteriors[:,1] < np.percentile(posteriors[:,1],i)
+        ax[0,0].hist( posteriors[mask,4]*msun/mearth, bins=bins_mass,alpha=0.5, label="{:.1f}+-{:.1f}".format(np.mean(posteriors[mask,4]*msun/mearth),np.std(posteriors[mask,4]*msun/mearth)) )
+        ax[1,1].hist( posteriors[mask,5], bins=bins_per,alpha=0.5, label="{:.2f}+-{:.2e}".format(np.mean(posteriors[mask,5]),np.std(posteriors[mask,5])) )
+    ax[0,0].legend(loc='best')
+    ax[1,1].legend(loc='best')
+    plt.show()
 
 
+    # explore uncertainty as a function of percentile 
+    #for i in np.linspace(10,90,20):
+    #    stat = get_stats(posteriors, i)
+    #    plt.errorbar(i, stat[-2]['median'],yerr=stat[-2]['sigma'] )
+    #plt.show()
 
     '''
     
