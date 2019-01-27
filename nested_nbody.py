@@ -193,7 +193,7 @@ if __name__ == "__main__":
     # simulate some observational data with noise 
     ttv = ttv_data['planets'][0]['ttv']
     epochs = np.arange(len(ttv))
-    ocdata = ttv + np.random.normal(1,0.5,len(ttv))/(24*60)
+    ocdata = ttv + np.random.normal(0,0.5,len(ttv))/(24*60)
     ttdata = ocdata + epochs*ttv_data['planets'][0]['P'] 
     err = np.random.normal(90,30,len(ttv))/(24*60*60)
     
