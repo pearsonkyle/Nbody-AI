@@ -76,7 +76,7 @@ ttv_data = {
 ```
 
 ## Estimating Planet Orbits
-The presence of additional planets or even moons in an exoplanet system can be inferred by measuring perturbations in the orbit of a transiting exoplanet. The gravitational influence from the campanion, even if it is non-transiting, can perturb the transiting planet in a manner characteristic to the orbit of the perturbing planet. The plot below shows how each parameter in a planetary system can impact our measured transit signal.
+The presence of additional planets or even moons in an exoplanet system can be inferred by measuring perturbations in the orbit of a transiting exoplanet. The gravitational influence from the campanion, even if it is non-transiting, can perturb the transiting planet in a manner characteristic to the orbit of the perturbing planet. The plot below shows how each parameter in a planetary system can impact our measured transit time.
 
 ![](figures/ttv_parameter_explore_v2.png)
 We use our N-body code to explore the parameter space governing our transit timing calculations to better assess which parameters have the most influence on the shape of the signal. After each simulation, a least-squares linear fit is calculated from the mid transit values in order to derive the ephemeris (now referred to as calculated). The linear ephemeris is then subtracted from the "observed" mid transit values and the residuals are plotted (O-C) indicating perturbations from a periodic orbit. The default transit parameters, shown in the table, are varied one by one within each subplot. 
@@ -120,7 +120,7 @@ if __name__ == "__main__":
     bounds = [5*mearth/msun, 2*mjup/msun, 6,9, 0.0,0.1]
 
     # use nested sampling retrieval 
-    newobj, posteriors = nested_nbody( epochs,ttv,err, objects, bounds )
+    newobj, posteriors, stats = nlfit( epochs,ttdata,err, objects, bounds )
 ```
 Posteriors from the TTV retrieval will look something like this: 
 ![](figures/nested_nbody_posteriors.png)
@@ -139,5 +139,5 @@ If you use any of these algorithms in your work please include Kyle A. Pearson a
 
 ## Future updates
 - implement RV fitting to reduce degeneracies
-- include multiple O-C signals for transiting multiplanet systems
+- include multiple O-C signals for simulatenous retrieval of planet 1 + 2 mass
 - use NN or clustering technique to estimate priors from simulation archive

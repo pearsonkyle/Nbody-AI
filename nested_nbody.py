@@ -93,7 +93,7 @@ def nlfit( xx,yy,yerr, objects, bounds=[-1,1,-1,1,-1,1], myloss='soft_l1'):
             import pdb; pdb.set_trace()
             return -999 
 
-    pymultinest.run(myloglike, myprior, int(len(bounds)/2), resume=False,
+    pymultinest.run(myloglike, myprior, int(len(bounds)/2), resume=False,null_log_evidence=-14,
                     evidence_tolerance=0.5, sampling_efficiency=0.5, n_clustering_params=2,
                     n_live_points=200, verbose=True)
 
@@ -119,10 +119,12 @@ def shift_align(ttv_data,ttv,xx,yerr):
     i = np.argmax(chis)
     return np.roll(ttv, -i)
 
-def get_stats(posterior,percentile):
+def get_stats(posterior,percentile,custom_mask=-1):
     
     stats = []
-    mask = posterior[:,1] < np.percentile(posterior[:,1],percentile)
+    mask = (posterior[:,1] < np.percentile(posterior[:,1],percentile))
+    if np.sum(custom_mask) != -1:
+        mask = mask & custom_mask
 
     for i in range(2, posterior.shape[1]):
         b = list(zip(posterior[mask,0], posterior[mask,i]))
@@ -173,22 +175,24 @@ def get_stats(posterior,percentile):
 if __name__ == "__main__":
     
     # units: Msun, Days, au
-    objects = [
-        {'m':1.12},
-        {'m':0.28*mjup/msun, 'P':3.2888, 'inc':3.14159/2,'e':0 }, 
-        {'m':0.25*mjup/msun, 'P':7.5, 'inc':3.14159/2,'e':0 }, 
+    objects = [{'m': 1.12},
+        {'m': 0.00026718954248366013,
+        'inc': 1.570795,
+        'e': 0,
+        'P': 3.2887967652699728},
+        {'e': 0, 'inc': 1.570795, 'm': 0.00019516339869281047, 'P': 7.5}
     ]
 
     # create REBOUND simulation
     sim = generate(objects)
 
     # year long integrations, timestep = 1 hour
-    sim_data = integrate(sim, objects, 60, 60*24) 
+    sim_data = integrate(sim, objects, 45, 45*24) 
     
     # collect the analytics of interest from the simulation
     ttv_data = analyze(sim_data)
 
-    #report(ttv_data)
+    report(ttv_data)
 
     # simulate some observational data with noise 
     ttv = ttv_data['planets'][0]['ttv']
