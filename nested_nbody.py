@@ -1,4 +1,4 @@
-import matplotlib.pyplot as plt
+from collections import OrderedDict
 import numpy as np
 import pickle 
 import corner 
@@ -11,6 +11,9 @@ if not os.path.exists("chains"): os.mkdir("chains")
 from nbody.simulation import randomize, generate, integrate, analyze, report
 from nbody.tools import mjup,msun,mearth,G,au,rearth,sa
 
+import matplotlib
+matplotlib.use("TkAgg")
+import matplotlib.pyplot as plt
 
 def lfit(xx,yy,error, bounds=[-10.,10.,-10.,10.]):
     # linear fit with nested sampling
@@ -38,7 +41,7 @@ def lfit(xx,yy,error, bounds=[-10.,10.,-10.,10.]):
 
 def get_ttv(objects, ndays=60, ttvfast=True):
     sim = generate(objects)
-    sim_data = integrate(sim, objects, ndays, ndays*24) # year long integration, dt=1 hour
+    sim_data = integrate(sim, objects, ndays, ndays*24*2) # year long integration, dt=30 minutes
     return analyze(sim_data, ttvfast=ttvfast)
 
 def nlfit( xx,yy,yerr, objects, bounds=[-1,1,-1,1,-1,1], myloss='soft_l1'):
@@ -93,7 +96,7 @@ def nlfit( xx,yy,yerr, objects, bounds=[-1,1,-1,1,-1,1], myloss='soft_l1'):
             import pdb; pdb.set_trace()
             return -999 
 
-    pymultinest.run(myloglike, myprior, int(len(bounds)/2), resume=False,null_log_evidence=-14,
+    pymultinest.run(myloglike, myprior, int(len(bounds)/2), resume=False,
                     evidence_tolerance=0.5, sampling_efficiency=0.5, n_clustering_params=2,
                     n_live_points=200, verbose=True)
 
@@ -108,6 +111,87 @@ def nlfit( xx,yy,yerr, objects, bounds=[-1,1,-1,1,-1,1], myloss='soft_l1'):
     objects[2]['m'] = np.mean(posteriors[mask,4])
     objects[2]['P'] = np.mean(posteriors[mask,5])
     
+    return objects, posteriors, s
+
+def nlpfit( xx,yy,yerr, objects, bounds, t0, myloss='soft_l1'):
+    '''
+        have bounds that follow same format as objects
+    '''
+
+    # format bounds list
+    blist = []
+    for i in range(len(bounds)):
+        for k in bounds[i].keys():
+            blist.append( bounds[i][k][0] )
+            blist.append( bounds[i][k][1] )
+
+    # compute integrations for as long as the max epoch 
+    ndays = np.round( 3*(max(xx)+1)*objects[1]['P'] ).astype(int)
+
+    # prevents seg fault in MultiNest
+    yerr[yerr==0] = 1
+    
+    def model_sim(params):
+        c=0
+        for i in range(len(bounds)):
+            for k in bounds[i].keys():                
+                objects[i][k] = params[c]
+                c+=1
+
+        # create REBOUND simulation
+        return get_ttv(objects,ndays)
+
+    def myprior(cube, ndim, n_params):
+        '''This transforms a unit cube into the dimensions of your prior space.'''
+        for i in range(int(len(blist)/2)): # for only the free params
+            cube[i] = (blist[2*i+1] - blist[2*i])*cube[i]+blist[2*i]
+
+    loss = {
+        'linear': lambda z: z,
+        'soft_l1' : lambda z : 2 * ((1 + z)**0.5 - 1),
+    }
+
+    def myloglike(cube, ndim, n_params):
+
+        try:
+            # compute ttv from nbody 
+            epochs,ttv = model_sim(cube)
+
+            tmids = np.linspace(t0-6./24,t0+6./24,144)
+            
+            chis = []
+            for i in range(tmids.shape[0]):
+                ttv_data = yy - (cube[0]*xx+tmids[i])
+
+                # marginalize omega
+                for i in range(len(epochs)-len(xx)):
+                    chi2 = ((ttv_data-np.roll(ttv,-i)[xx])/yerr)**2 
+                    chis.append( -np.sum( loss[myloss](chi2) ) )
+
+            return np.max(chis)
+
+        except:
+            print('error with model, -999')
+            import pdb; pdb.set_trace()
+            return -999 
+
+    pymultinest.run(myloglike, myprior, int(len(blist)/2), resume=False,
+                    evidence_tolerance=0.5, sampling_efficiency=0.5,# n_clustering_params=2,
+                    n_live_points=200, verbose=True)
+
+    a = pymultinest.Analyzer(n_params=int(len(blist)/2)) 
+
+    # gets the marginalized posterior probability distributions 
+    s = a.get_stats()
+    posteriors = a.get_data()
+    
+    mask = posteriors[:,1] < np.percentile(posteriors[:,1],25)
+    c=0
+    for i in range(len(bounds)):
+        for k in bounds[i].keys():                
+            objects[i][k] = np.mean(posteriors[mask,2+c])
+            c+=1
+
     return objects, posteriors, s
 
 def shift_align(ttv_data,ttv,xx,yerr):
@@ -180,20 +264,17 @@ if __name__ == "__main__":
         'inc': 1.570795,
         'e': 0,
         'P': 3.2887967652699728},
-        {'e': 0, 'inc': 1.570795, 'm': 0.00019516339869281047, 'P': 7.5}
+        {'e': 0, 'inc': 1.570795, 'm': 0.00023516339869281047, 'P': 7.5, }#'omega':np.pi/3, }
     ]
 
     # create REBOUND simulation
-    sim = generate(objects)
-
-    # year long integrations, timestep = 1 hour
-    sim_data = integrate(sim, objects, 45, 45*24) 
+    sim = generate(objects, 90, 90*24) 
     
     # collect the analytics of interest from the simulation
-    ttv_data = analyze(sim_data)
+    ttv_data = analyze(sim)
 
     report(ttv_data)
-
+    
     # simulate some observational data with noise 
     ttv = ttv_data['planets'][0]['ttv']
     epochs = np.arange(len(ttv))
@@ -208,17 +289,30 @@ if __name__ == "__main__":
     # estimate priors
     bounds = []
     objects[1]['P'] = lstats['marginals'][0]['median']
-    objects[2] = {'e': 0, 'inc': 1.570795} # delete mass and period for fitting routine  
+    objects[2] = {'e': 0, 'inc': 1.570795}
+    
     bounds = [
-        lstats['marginals'][0]['5sigma'][0], lstats['marginals'][0]['5sigma'][1], # Period #1 (day)
-        lstats['marginals'][1]['5sigma'][0], lstats['marginals'][0]['5sigma'][1], # t0 #1 
-        objects[1]['m'] * 0.25, objects[1]['m'] * 5, # Mass #2 (msun)
-        objects[1]['P'] * 1.5, objects[1]['P'] * 4, # Period #2 (day)
+        {},# bounds for star, leave as placeholder if none
+        OrderedDict({
+            'P':[lstats['marginals'][0]['5sigma'][0]*0.99, lstats['marginals'][0]['5sigma'][1]*1.01 ], # Period #1 (day)
+        }),
+        
+        OrderedDict({
+            'P':[objects[1]['P'] * 1.5, objects[1]['P'] * 4,], # Period #2 (day)
+            'm':[objects[1]['m'] * 0.25, objects[1]['m'] * 5], # Mass #2 (msun)
+            'e':[0,0.1],
+            #'inc':[0.8*np.pi/2,np.pi/2],
+            #'omega':[0,np.pi],
+        }),
     ]
-    print(bounds)
 
     # non linear fit with priors constrained from linear ephem fit 
-    newobj, posteriors, stats = nlfit( epochs,ttdata,err, objects, bounds )
+    newobj, posteriors, stats = nlpfit( epochs,ttdata,err, objects, bounds, lstats['marginals'][1]['median'] )
+
+    print('finished')
+    dude()
+
+
     stats['marginals'] = get_stats(posteriors,30)
 
     # generate the best fit model 
@@ -229,6 +323,8 @@ if __name__ == "__main__":
 
     # compute limits
     def limits(key='1sigma'):
+        # compute uncertainty on ttv shift 
+
         obj = copy.deepcopy(newobj)
 
         models = [] 

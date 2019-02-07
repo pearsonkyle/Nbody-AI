@@ -24,7 +24,7 @@ def empty_data(N): # orbit parameters in timeseries
         'M':np.zeros(N),
     }
 
-def generate(objects):
+def generate(objects, Ndays=None, Noutputs=None):
     # create rebound simulation 
     # for object parameters see: 
     # https://rebound.readthedocs.io/en/latest/_modules/rebound/particle.html
@@ -33,7 +33,11 @@ def generate(objects):
     for i in range(len(objects)):
         sim.add( **objects[i] ) 
     sim.move_to_com() 
-    return sim
+
+    if Ndays and Noutputs:
+        return integrate(sim, objects, Ndays, Noutputs)
+    else:
+        return sim
 
 def randomize():
 
