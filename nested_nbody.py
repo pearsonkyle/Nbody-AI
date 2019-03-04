@@ -14,6 +14,7 @@ from nbody.tools import mjup,msun,mearth,G,au,rearth,sa
 import matplotlib
 matplotlib.use("TkAgg")
 import matplotlib.pyplot as plt
+from matplotlib.colors import LinearSegmentedColormap
 
 def lfit(xx,yy,error, bounds=[-10.,10.,-10.,10.]):
     # linear fit with nested sampling
@@ -113,7 +114,7 @@ def nlfit( xx,yy,yerr, objects, bounds=[-1,1,-1,1,-1,1], myloss='soft_l1'):
     
     return objects, posteriors, s
 
-def nlpfit( xx,yy,yerr, objects, bounds, t0, myloss='soft_l1'):
+def nlpfit( xx,yy,yerr, objects, bounds, myloss='soft_l1'):
     '''
         have bounds that follow same format as objects
     '''
@@ -152,22 +153,23 @@ def nlpfit( xx,yy,yerr, objects, bounds, t0, myloss='soft_l1'):
     }
 
     def myloglike(cube, ndim, n_params):
-
         try:
             # compute ttv from nbody 
             epochs,ttv = model_sim(cube)
 
-            tmids = np.linspace(t0-6./24,t0+6./24,144)
+            # computer piece wise averages 
+            tmids = np.linspace(min(yy)-0.125/24,min(yy)+0.125/24,30*60)
             
             chis = []
             for i in range(tmids.shape[0]):
                 ttv_data = yy - (cube[0]*xx+tmids[i])
 
-                # marginalize omega
-                for i in range(len(epochs)-len(xx)):
-                    chi2 = ((ttv_data-np.roll(ttv,-i)[xx])/yerr)**2 
-                    chis.append( -np.sum( loss[myloss](chi2) ) )
+                # marginalize omega 
+                chis.append( shift_align(ttv_data, ttv, xx, yerr, return_chi=True) )
 
+            #if np.max(chis) > -100:
+            #    import pdb; pdb.set_trace() 
+            
             return np.max(chis)
 
         except:
@@ -185,23 +187,29 @@ def nlpfit( xx,yy,yerr, objects, bounds, t0, myloss='soft_l1'):
     s = a.get_stats()
     posteriors = a.get_data()
     
+    # map posteriors back to object dict
+    obj = copy.deepcopy(objects)
     mask = posteriors[:,1] < np.percentile(posteriors[:,1],25)
     c=0
     for i in range(len(bounds)):
         for k in bounds[i].keys():                
-            objects[i][k] = np.mean(posteriors[mask,2+c])
+            obj[i][k] = np.mean(posteriors[mask,2+c])
             c+=1
 
-    return objects, posteriors, s
+    return obj, posteriors, s
 
-def shift_align(ttv_data,ttv,xx,yerr):
+def shift_align(ttv_data,ttv,xx,yerr, return_chi=False):
     chis = []
     # only works for 1 planet 
     for i in range(len(ttv)-len(xx)):
         chi2 = ((ttv_data-np.roll(ttv,-i)[xx])/yerr)**2 
         chis.append( -np.sum(chi2) )
-    i = np.argmax(chis)
-    return np.roll(ttv, -i)
+    if return_chi:
+        return np.max(chis)
+    else:
+        # return shifted model
+        i = np.argmax(chis)
+        return np.roll(ttv, -i)
 
 def get_stats(posterior,percentile,custom_mask=-1):
     
@@ -260,11 +268,11 @@ if __name__ == "__main__":
     
     # units: Msun, Days, au
     objects = [{'m': 1.12},
-        {'m': 0.00026718954248366013,
+        {'m': 0.284*mjup/msun,
         'inc': 1.570795,
         'e': 0,
         'P': 3.2887967652699728},
-        {'e': 0, 'inc': 1.570795, 'm': 0.00023516339869281047, 'P': 7.5, }#'omega':np.pi/3, }
+        {'e': 0.06, 'inc': 1.570795, 'm': 66*mearth/msun, 'P': 7.49, } #'omega':np.pi/3, }
     ]
 
     # create REBOUND simulation
@@ -273,19 +281,19 @@ if __name__ == "__main__":
     # collect the analytics of interest from the simulation
     ttv_data = analyze(sim)
 
-    report(ttv_data)
-    
+    report(ttv_data)    
+
     # simulate some observational data with noise 
     ttv = ttv_data['planets'][0]['ttv']
     epochs = np.arange(len(ttv))
-    ocdata = ttv + np.random.normal(0,0.5,len(ttv))/(24*60)
-    ttdata = ocdata + epochs*ttv_data['planets'][0]['P'] 
+    ttdata = ttv_data['planets'][0]['tt'] + np.random.normal(0,0.5,len(ttv))/(24*60)
     err = np.random.normal(90,30,len(ttv))/(24*60*60)
     
     # perform nested sampling linear fit to transit data    
     lstats, lposteriors = lfit(epochs,ttdata,err, 
                 bounds=[ttv_data['planets'][0]['P']-6/24,ttv_data['planets'][0]['P']+6/24, min(ttdata)-1/24,ttv_data['planets'][0]['P']+1/24])
-    
+    ocdata = ttdata - (np.arange(len(ttv_data['planets'][0]['tt']))*lstats['marginals'][0]['median'] + lstats['marginals'][1]['median'] )
+
     # estimate priors
     bounds = []
     objects[1]['P'] = lstats['marginals'][0]['median']
@@ -294,12 +302,12 @@ if __name__ == "__main__":
     bounds = [
         {},# bounds for star, leave as placeholder if none
         OrderedDict({
-            'P':[lstats['marginals'][0]['5sigma'][0]*0.99, lstats['marginals'][0]['5sigma'][1]*1.01 ], # Period #1 (day)
+            'P':[lstats['marginals'][0]['5sigma'][0], lstats['marginals'][0]['5sigma'][1] ], # Period #1 (day)
         }),
         
         OrderedDict({
-            'P':[objects[1]['P'] * 1.5, objects[1]['P'] * 4,], # Period #2 (day)
-            'm':[objects[1]['m'] * 0.25, objects[1]['m'] * 5], # Mass #2 (msun)
+            'P':[objects[1]['P'] * 1.5, objects[1]['P'] * 2.5], # Period #2 (day)
+            'm':[objects[1]['m'] * 0.5, objects[1]['m'] * 2], # Mass #2 (msun)
             'e':[0,0.1],
             #'inc':[0.8*np.pi/2,np.pi/2],
             #'omega':[0,np.pi],
@@ -312,19 +320,29 @@ if __name__ == "__main__":
     print('finished')
     dude()
 
-
     stats['marginals'] = get_stats(posteriors,30)
 
     # generate the best fit model 
     ndays = np.round( 2*(max(epochs)+1)*newobj[1]['P'] ).astype(int)
     epoch,ttvfit = get_ttv(newobj, ndays)
 
-    ttvfit = shift_align(ocdata,ttvfit,epochs,err)
+    # figure out the optimal omega and t0 value 
+    tmids = np.linspace(min(ttdata)-0.125/24,min(ttdata)+0.125/24,30*60)
+    chis = []
+    for i in range(tmids.shape[0]):
+        ttvdata = ttdata - (newobj[1]['P']*epochs + tmids[i])
+
+        # marginalize omegas
+        chis.append( shift_align(ttvdata,ttvfit, epochs, err, return_chi=True) )   
+    ti = np.argmax(chis)
+    ttvbest = shift_align(ttvdata,ttvfit, epochs, err, return_chi=False)
+    
+    # TODO figure out the omega value
+    # create an alignment algorithm that returns everything, the t0, omega, best fit, chi2 
+
 
     # compute limits
     def limits(key='1sigma'):
-        # compute uncertainty on ttv shift 
-
         obj = copy.deepcopy(newobj)
 
         models = [] 
@@ -389,12 +407,33 @@ if __name__ == "__main__":
         models.append( shift_align(ocdata,ttv,epochs,err) )
         obj = copy.deepcopy(newobj)
 
-        return np.max(models,0),np.min(models,0)
-    
+        try:
+            return np.max(models,0),np.min(models,0)
+        except:
+            # process the results point by points
+            lengths = [len(models[i]) for i in range(len(models)) ]
+            maxa = np.zeros(max(lengths))
+            mina = np.zeros(max(lengths))
+
+            # loop through data points        
+            for i in range( max(lengths) ):
+                mini = []
+                for j in range(len(models)):
+                    try:
+                        mini.append( models[j][i] )
+                    except:
+                        pass
+                maxa[i] = np.max(mini)
+                mina[i] = np.min(mini)
+
+            return maxa,mina
+
     upper3, lower3 = limits('3sigma')
     
+    colors = [ (1, 0, 0), (0,1,0), (0, 0, 0)] 
+    cm = LinearSegmentedColormap.from_list("mylist", colors, N=3)
     f = corner.corner(posteriors[:,2:], 
-                    labels=['Period (day)','t0','Mass 2 (sun)', 'Period 2 (day)'],
+                    labels=['Period (day)', 'Period 2 (day)','Mass 2 (sun)', 'Eccentricity 2'],
                     bins=int(np.sqrt(posteriors.shape[0])), 
                     range=[
                         ( stats['marginals'][0]['5sigma'][0], stats['marginals'][0]['5sigma'][1]),
@@ -402,18 +441,20 @@ if __name__ == "__main__":
                         ( stats['marginals'][2]['5sigma'][0], stats['marginals'][2]['5sigma'][1]),
                         ( stats['marginals'][3]['5sigma'][0], stats['marginals'][3]['5sigma'][1]),
                     ],
-                    truths=[lstats['marginals'][0]['median'], lstats['marginals'][1]['median'], objects[2]['m'], objects[2]['P'] ],
+                    truths=[ttv_data['planets'][0]['P'], ttv_data['planets'][1]['P'], objects[2]['m'], ttv_data['planets'][1]['e'] ],
                     #no_fill_contours=True,
                     truth_color='green',
                     plot_contours=False,
-                    plot_density=False)
+                    plot_density=False,
+                    data_kwargs={'c':posteriors[:,1],'vmin':np.percentile(posteriors[:,1],1),'vmax':np.percentile(posteriors[:,1],50),'cmap':LinearSegmentedColormap.from_list("mylist", colors, N=3)},
+                    )
     plt.show()
 
     # generate models between the uncertainties 
     f,ax = plt.subplots(1, figsize=(7,4))
     ax.errorbar(epochs,ocdata*24*60,yerr=err*24*60,ls='none',marker='o',label='Data',color='black')
-    ax.plot(epochs, ttv_data['planets'][0]['ttv']*24*60,ls='--', label='Truth',color='green')
-    ax.plot(epoch, ttvfit*24*60, label='Linear+Nbody ({:.1f})'.format(stats['global evidence']),color='red')
+    ax.plot(epochs, ttv_data['planets'][0]['ttv']*24*60, ls='--', label='Truth',color='green')
+    ax.plot(epoch, ttvbest*24*60, label='Linear+Nbody ({:.1f})'.format(stats['global evidence']),color='red')
     ax.fill_between(epoch,24*60*upper3,24*60*lower3,alpha=0.1,label='Nbody 3 sigma',color='red')
     ax.axhline(ls='--',label='Linear ({:.1f})'.format(lstats['global evidence']))
     ax.legend(loc='best')
