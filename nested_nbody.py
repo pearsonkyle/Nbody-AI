@@ -12,7 +12,6 @@ from nbody.simulation import randomize, generate, integrate, analyze, report
 from nbody.tools import mjup,msun,mearth,G,au,rearth,sa
 
 import matplotlib
-matplotlib.use("TkAgg")
 import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
 
@@ -93,8 +92,9 @@ def nlfit( xx,yy,yerr, objects, bounds=[-1,1,-1,1,-1,1], myloss='soft_l1'):
 
             return np.max(chis)
         except:
-            print('error with model, -999')
-            import pdb; pdb.set_trace()
+            #print('error with model, -999')
+            #import pdb; pdb.set_trace()
+            print("error with model:",cube[0],cube[1],cube[2],cube[3])
             return -999 
 
     pymultinest.run(myloglike, myprior, int(len(bounds)/2), resume=False,

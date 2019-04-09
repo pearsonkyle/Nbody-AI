@@ -7,7 +7,7 @@ Transiting exoplanets in multiplanet systems exhibit non-Keplerian orbits as a r
 ## Generate an N-body simulation 
 The n-body simulations in this research make use of the [REBOUND](https://rebound.readthedocs.io) code. To generate a random simulation follow the code below: 
 ```python
-from nbody.simulation import generate, integrate, analyze, report
+from nbody.simulation import generate, analyze, report
 from nbody.tools import mjup,msun,mearth
 
 if __name__ == "__main__":
@@ -15,17 +15,16 @@ if __name__ == "__main__":
     # units: Msun, Days, au
     objects = [
         {'m':1.12},
-        {'m':0.28*mjup/msun, 'P':3.2888, 'inc':3.14159/2,'e':0, 'omega':0  }, 
-        {'m':1*mjup/msun, 'P':7.5, 'inc':3.14159/2,'e':0,  'omega':0  }, 
+        {'m':0.28*mjup/msun, 'P':3.2888, 'inc':3.14159/2, 'e':0, 'omega':0  }, 
+        {'m':0.988*mjup/msun, 'P':7, 'inc':3.14159/2, 'e':0,  'omega':0  }, 
+        {'m':0.432*mjup/msun, 'P':12, 'inc':3.14159/2, 'e':0,  'omega':0  }, 
     ]
 
     # create REBOUND simulation
-    sim = generate(objects)
-
     # year long integrations, timestep = 1 hour
-    sim_data = integrate(sim, objects, 365, 365*24) 
-    
-    # collect the metrics of interest from the simulation
+    sim_data = generate(objects, 365, 365*24)
+
+    # collect the analytics of interest from the simulation
     ttv_data = analyze(sim_data)
 
     # plot the results 
@@ -79,65 +78,13 @@ ttv_data = {
 The presence of additional planets or even moons in an exoplanet system can be inferred by measuring perturbations in the orbit of a transiting exoplanet. The gravitational influence from the campanion, even if it is non-transiting, can perturb the transiting planet in a manner characteristic to the orbit of the perturbing planet. The plot below shows how each parameter in a planetary system can impact our measured transit time.
 
 ![](figures/ttv_parameter_explore_v2.png)
-We use our N-body code to explore the parameter space governing our transit timing calculations to better assess which parameters have the most influence on the shape of the signal. After each simulation, a least-squares linear fit is calculated from the mid transit values in order to derive the ephemeris (now referred to as calculated). The linear ephemeris is then subtracted from the "observed" mid transit values and the residuals are plotted (O-C) indicating perturbations from a periodic orbit. The default transit parameters, shown in the table, are varied one by one within each subplot. 
 
-In order to derive the orbit parameters from observations gradient-based techniques have been proposed to expedite the orbit optimization using N-body simulations however they inherently find local minima in a degenerate phase space (e.g. mass and eccentricity) unless priors are heavily constrained. We introduce a new method for retrieving orbit parameters within a Bayesian framework using nested sampling. Nested Sampling allows us to sample multimodal distributions and infer uncertainities from our posteriors in a manner more efficient than a Markov Chain Monte Carlo. 
-
-```python
-import matplotlib.pyplot as plt
-import numpy as np
-import corner 
-
-from nbody.simulation import generate, integrate, analyze, report, nested_nbody
-from nbody.tools import mjup,msun,mearth,G,au,rearth,sa
-
-if __name__ == "__main__":
-    
-    # units: Msun, Days, au
-    objects = [
-        {'m':1.12},
-        {'m':0.28*mjup/msun, 'P':3.2888, 'inc':3.14159/2,'e':0, 'omega':0  }, 
-        {'m':1*mjup/msun, 'P':7.5, 'inc':3.14159/2,'e':0,  'omega':np.pi/4  }, 
-    ]
-
-    # create REBOUND simulation
-    sim = generate(objects)
-
-    # year long integrations, timestep = 1 hour
-    sim_data = integrate(sim, objects, 60, 60*24) 
-    
-    # collect the analytics of interest from the simulation
-    ttv_data = analyze(sim_data)
-
-    # simulate some observational data with noise 
-    ttv = ttv_data['planets'][0]['ttv']
-    ttv += np.random.normal(0.25,0.25,len(ttv))/(24*60)
-    epochs = np.arange(len(ttv))
-    err = np.random.normal(30,5,len(ttv))/(24*60*60)
-    del objects[-1]
-
-    # estimate priors
-    bounds = [5*mearth/msun, 2*mjup/msun, 6,9, 0.0,0.1]
-
-    # use nested sampling retrieval 
-    newobj, posteriors, stats = nlfit( epochs,ttdata,err, objects, bounds )
-```
-Posteriors from the TTV retrieval will look something like this: 
-![](figures/nested_nbody_posteriors.png)
-
-![](figures/nested_nbody_fit.png)
-
-## File Guide 
-- `testnest.py` - a program to test bayesian inference using MultiNest
-- `nbody_parameter_explore.py` - see how various parameters impact results from the N-body simulations
-- `generate_simulations.py` - easily generate multiple simulations for machine learning projects
-- `solarsystem_nbody.py` - an N-body calculation for our Solar System
-- `GP_RM_relation.py` - Use Gaussian Process Regression to model Mass-Radius relation in known exoplanet systems
 
 ## Citation 
 If you use any of these algorithms in your work please include Kyle A. Pearson as a coauthor. Current institution: Lunar and Planetary Laboratory, University of Arizona, 1629 East University Boulevard, Tucson, AZ, 85721, USA
 
 ## Future updates
+- Documentation for retrieval
 - implement RV fitting to reduce degeneracies
 - include multiple O-C signals for simulatenous retrieval of planet 1 + 2 mass
 - use NN or clustering technique to estimate priors from simulation archive

@@ -216,7 +216,7 @@ def report(data, savefile=None):
             plt.subplot2grid( (2,3), (0,2) ), # lomb scargle for RV semi-amplitude
             plt.subplot2grid( (2,3), (1,2) ) # lomb scargle for o-c
         ]
-    plt.subplots_adjust(top=0.96, bottom=0.07, left=0.06, right=0.98, hspace=0.3, wspace=0.3)
+    plt.subplots_adjust(top=0.96, bottom=0.07, left=0.1, right=0.98, hspace=0.3, wspace=0.3)
 
     ax[2].plot(data['times'][1:],data['RV']['signal'],'k-' )
     ax[2].set_xlim([0, 2.5*data['planets'][-1]['P'] ])

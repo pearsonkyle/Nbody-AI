@@ -1,4 +1,4 @@
-from nbody.simulation import generate, integrate, analyze, report
+from nbody.simulation import generate, analyze, report
 from nbody.tools import mjup,msun,mearth
 
 if __name__ == "__main__":
@@ -9,7 +9,6 @@ if __name__ == "__main__":
         {'m':0.28*mjup/msun, 'P':3.2888, 'inc':3.14159/2, 'e':0, 'omega':0  }, 
         {'m':0.988*mjup/msun, 'P':7, 'inc':3.14159/2, 'e':0,  'omega':0  }, 
         {'m':0.432*mjup/msun, 'P':12, 'inc':3.14159/2, 'e':0,  'omega':0  }, 
-        {'m':0.256*mjup/msun, 'P':18, 'inc':3.14159/2, 'e':0,  'omega':0  }, 
     ]
 
     # create REBOUND simulation
@@ -20,4 +19,4 @@ if __name__ == "__main__":
     ttv_data = analyze(sim_data)
 
     # plot the results 
-    report(ttv_data)#, savefile='report.png')
+    report(ttv_data, savefile='report.png')
