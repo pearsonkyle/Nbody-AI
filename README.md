@@ -93,7 +93,7 @@ Posteriors for the N-body parameters are available [here](figures/planetX_nbody_
 
 Click the links below for more information on each step of the analysis
 - [Creating a Machine Learning Model](simulations/)
-- [Nested Sampling Retrieval](Retrieval.md)
+- Nested Sampling Retrieval
 
 
 ## Citation 

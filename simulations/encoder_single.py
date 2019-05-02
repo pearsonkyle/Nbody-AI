@@ -12,7 +12,7 @@ from sklearn.model_selection import train_test_split
 import tensorflow as tf
 from nbody.ai import build_encoder 
 
-def load_data(fname='Xy30_6.pkl', npts=20, noise=False):
+def load_data(fname='Xy30_6.pkl', npts=30, noise=False):
 
     X,z = pickle.load(open(fname,'rb'))
 
@@ -56,9 +56,9 @@ if __name__ == '__main__':
 
     encoder = build_encoder(
         input_dims=[X.shape[1],z.shape[1]], 
-        layer_sizes=[ [8,8], [32,32] ],
-        combined_layers = [128,64,32], 
-        dropout=0.25,  
+        layer_sizes=[ [8,8], [32,64] ],
+        combined_layers = [256,128,32], 
+        dropout=0.3,  
         output_dim=y.shape[1]
     )
 
