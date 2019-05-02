@@ -56,9 +56,11 @@ def randomize():
 
         # planet 2
         {
-            'm': np.random.uniform(0.1,4),  # ratio with planet 1   
+            'm': np.random.uniform(0.25,3),  # ratio with planet 1   
             # P - conditional, must be beyond hill radius of planet 1
             # inc - conditional based on transiting inclination limit
+            'omega': np.random.uniform(0,np.pi),
+            'e': np.abs(np.random.normal(0,0.02))
         }
     ]
 
@@ -159,7 +161,7 @@ def analyze(m, ttvfast=False):
 
     RV = np.diff(m['star']['x'])*1.496e11*m['dt'] # measurements -> seconds
     
-    freq,power = lomb_scargle( m['times'][1:], RV, npeaks=3)
+    freq,power = lomb_scargle( m['times'][1:], RV)
 
     data = {
         'times':m['times'],
@@ -187,7 +189,7 @@ def analyze(m, ttvfast=False):
         freq,power = lomb_scargle( np.arange(len(ttv)),ttv, minfreq=1./180,maxfreq=1./2,npeaks=0)
 
         # save data 
-        for k in ['e','inc','a']:
+        for k in ['e','inc','a', 'omega']:
             pdata[k] = np.mean( m['pdata'][j-1][k] )
         pdata['mass'] = m['objects'][j]['m']
         pdata['P'] = per

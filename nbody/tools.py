@@ -73,7 +73,7 @@ def TTV(epochs, tt):
 def make_sin(t, pars, freqs=-1):
     fn = 0 
 
-    # use fixed frequencies 
+    # use fixed frequencies for ls fitting of amp and phase
     if isinstance(freqs,list) or isinstance(freqs,np.ndarray):
         if pars.ndim == 1: pars = pars.reshape(-1,2) 
         
@@ -89,7 +89,7 @@ def make_sin(t, pars, freqs=-1):
 
     return fn 
 
-def lomb_scargle(t,y,dy=None, minfreq=1./365, maxfreq=1, npeaks=0, peaktol=0.1):
+def lomb_scargle(t,y,dy=None, minfreq=1./365, maxfreq=1/2, npeaks=0, peaktol=0.05):
     # periodogram
     if isinstance(dy,np.ndarray):
         ls = LombScargle(t,y,dy)
@@ -104,39 +104,37 @@ def lomb_scargle(t,y,dy=None, minfreq=1./365, maxfreq=1, npeaks=0, peaktol=0.1):
         pp = [-1,-1,-1]
     # power probabilities 
     # This tells us that to attain a 10% false alarm probability requires the highest periodogram peak to be approximately XX; 5% requires XX, and 1% requires XX.
-    '''
-    # find peaks in periodogram 
-    peaks,amps = find_peaks(power,height=peaktol)
-    Nterms = min(npeaks,len(peaks))
-    fdata = np.zeros( (Nterms,npeaks) ) # frequency, amplitude, shift  
+    if npeaks > 0:
 
-    # fit amplitudes to each peak frequency 
-    if Nterms > 0 and npeaks > 0:
+        # find peaks in periodogram 
+        peaks,amps = find_peaks(power,height=peaktol)
+        Nterms = npeaks#min(npeaks,len(peaks))
+        fdata = np.zeros( (Nterms,3) ) # frequency, amplitude, shift  
 
-        # sort high to low 
-        peaks = peaks[ np.argsort(amps['peak_heights'])[::-1] ] 
+        # fit amplitudes to each peak frequency 
+        if Nterms > 0 and npeaks > 0:
+
+            # sort high to low 
+            peaks = peaks[ np.argsort(amps['peak_heights'])[::-1] ] 
+            
+            # estimate priors 
+            for i in range(min(npeaks,len(peaks))):
+                fdata[i,0] = frequency[ int(peaks[i]) ]
+                fdata[i,1] = np.sort(amps['peak_heights'])[::-1][i] * maxavg(y) #amplitude estimate
+                fdata[i,2] = 0 # phase shift estimate
         
-        # estimate priors 
-        for i in range(Nterms):
-            fdata[i,0] = frequency[ int(peaks[i]) ]
-            fdata[i,1] = np.sort(amps['peak_heights'])[::-1][i] * maxavg(y) #amplitude estimate
-    
-        # ignore fitting frequencies 
-        priors = fdata[:,1:].flatten()
-        bounds = np.array( [ [0, max(y)*1.5], [-2*np.pi,2*np.pi] ]*Nterms ).T
+            # ignore fitting frequencies 
+            priors = fdata.flatten()
+            bounds = np.array( [ [0,1], [0, max(y)*1.5], [0,2*np.pi] ]*Nterms ).T
 
-        def fit_wave(pars):
-            wave = make_sin(t, pars, fdata[:,0])
-            return (y-wave)
-        
-        res = least_squares(fit_wave, x0=priors, bounds=bounds)
+            def fit_wave(pars):
+                wave = make_sin(t, pars)
+                return (y-wave)/y
+            
+            res = least_squares(fit_wave, x0=priors, bounds=bounds)
 
-        fdata[:,1:] = res.x.reshape(Nterms,-1)
-        
-    elif Nterms == 0:
-        fdata = np.zeros( (1,3) )
-        pp = -1 
-        #plt.plot( frequency, power) 
-        #import pdb; pdb.set_trace() 
-    '''
-    return frequency,power
+            fdata = res.x.reshape(Nterms,-1)
+
+        return frequency,power, fdata    
+    else:
+        return frequency,power

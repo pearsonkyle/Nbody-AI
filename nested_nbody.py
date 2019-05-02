@@ -41,7 +41,7 @@ def lfit(xx,yy,error, bounds=[-10.,10.,-10.,10.]):
 
 def get_ttv(objects, ndays=60, ttvfast=True):
     sim = generate(objects)
-    sim_data = integrate(sim, objects, ndays, ndays*24*2) # year long integration, dt=30 minutes
+    sim_data = integrate(sim, objects, ndays, ndays*24*2) # dt=30 minutes
     return analyze(sim_data, ttvfast=ttvfast)
 
 def nlfit( xx,yy,yerr, objects, bounds=[-1,1,-1,1,-1,1], myloss='soft_l1'):
@@ -152,6 +152,8 @@ def nlpfit( xx,yy,yerr, objects, bounds, myloss='soft_l1'):
         'soft_l1' : lambda z : 2 * ((1 + z)**0.5 - 1),
     }
 
+    omegas = [] 
+
     def myloglike(cube, ndim, n_params):
         try:
             # compute ttv from nbody 
@@ -165,11 +167,10 @@ def nlpfit( xx,yy,yerr, objects, bounds, myloss='soft_l1'):
                 ttv_data = yy - (cube[0]*xx+tmids[i])
 
                 # marginalize omega 
-                chis.append( shift_align(ttv_data, ttv, xx, yerr, return_chi=True) )
+                bestchi, besti = shift_align(ttv_data, ttv, xx, yerr, return_chi=True)
+                chis.append( bestchi )
+                omegas.append( besti )
 
-            #if np.max(chis) > -100:
-            #    import pdb; pdb.set_trace() 
-            
             return np.max(chis)
 
         except:
@@ -190,12 +191,14 @@ def nlpfit( xx,yy,yerr, objects, bounds, myloss='soft_l1'):
     # map posteriors back to object dict
     obj = copy.deepcopy(objects)
     mask = posteriors[:,1] < np.percentile(posteriors[:,1],25)
-    c=0
+    c = 0
     for i in range(len(bounds)):
         for k in bounds[i].keys():                
             obj[i][k] = np.mean(posteriors[mask,2+c])
             c+=1
 
+    print('check that omegas == posterior.shape[0]')
+    import pdb; pdb.set_trace()
     return obj, posteriors, s
 
 def shift_align(ttv_data,ttv,xx,yerr, return_chi=False):
@@ -205,7 +208,7 @@ def shift_align(ttv_data,ttv,xx,yerr, return_chi=False):
         chi2 = ((ttv_data-np.roll(ttv,-i)[xx])/yerr)**2 
         chis.append( -np.sum(chi2) )
     if return_chi:
-        return np.max(chis)
+        return np.max(chis), np.argmax(chis)
     else:
         # return shifted model
         i = np.argmax(chis)
@@ -300,7 +303,7 @@ if __name__ == "__main__":
     objects[2] = {'e': 0, 'inc': 1.570795}
     
     bounds = [
-        {},# bounds for star, leave as placeholder if none
+        OrderedDict({}), # bounds for star, leave in as placeholder if none
         OrderedDict({
             'P':[lstats['marginals'][0]['5sigma'][0], lstats['marginals'][0]['5sigma'][1] ], # Period #1 (day)
         }),
