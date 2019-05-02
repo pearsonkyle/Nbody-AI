@@ -117,5 +117,6 @@ python estimate_prior.py --train Xy30_6.pkl
 
 ## Things to improve
 - CNN encoder?
+- hyper parameter optimization
 - Create a decoder network/VAE
 - Fourier analysis of O-C signal 
