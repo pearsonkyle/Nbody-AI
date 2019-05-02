@@ -4,7 +4,7 @@ A python 3 package for generating N-body simulations, computing transit timing v
 ## Background
 Transiting exoplanets in multiplanet systems exhibit non-Keplerian orbits as a result of the graviational influence from companions which can cause the times and durations of transits to vary (TTV/TDV). The amplitude and periodicity of the transit time variations are characteristic of the perturbing planet's mass and orbit. 
 
-![](exoplanet_ttv.gif)
+![](figures/exoplanet_ttv.gif)
 
 Video credit: [NASA](https://www.youtube.com/watch?v=rqQ1xKsNIQE)
 
