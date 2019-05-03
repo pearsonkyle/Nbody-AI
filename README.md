@@ -85,12 +85,14 @@ The presence of additional planets or even moons in an exoplanet system can be i
 
 ![](figures/nested_nbody_fit.png)
 
+See documentation for [N-body retrieval](Retrieval.md). 
 
-
-## Machine learning 
+## Machine learning
 In order to derive robust uncertainties or even compare the significance of a perturbation the Bayesian evidence is used. Retrieving parameters typically takes ~5000 N-body simulations, which can take up to 10 hours or more depending on the size of the prior and how long each N-body integration is. This is where we leverage machine learning in order to estimate our priors and expedite the retrieval. Machine learning is used to estimate the parameters of a new planet based on the O-C data and the known system parameters; M*, M1 and P1. The estimate from a neural network is used to constrain the priors in a parameter retrieval using nested sampling. 
 
 ![](figures/nn_prior.png)
+
+See documentation for [machine learning](simulations/)
 
 ## Science
 The plot below is a time series analysis for the object TOI 193.01 using the data from the [Transiting Exoplanet Survey Satellite](https://www.nasa.gov/tess-transiting-exoplanet-survey-satellite/). The top subplot shows a full timeseries of data from sectors 1–2 with the mid transit of each light curve plotted as a green triangle. The bottom left subplot shows a phase folded light curve that has been fit with a transit model to derive the planetary parameters shown in the table on the far right. The green data points are phase folded and binned to a cadence of 2 minutes. The dotted line in the O-C plot represents one sigma uncertainties on the linear ephemeris. The middle right subplot shows a transit periodogram for the PDC Flux and for the residuals of the time series, after each light curve has been removed
@@ -101,19 +103,7 @@ The residuals of a linear ephemeris are plotted and then compared against a non-
 
 ![](figures/planetX_ttvfit.png)
 
-Posteriors for the N-body parameters are available [here](figures/planetX_nbody_posterior_zoom.png)
-
-Click the links below for more information on each step of the analysis
-- [Creating a Machine Learning Model](simulations/)
-- [Nested Sampling Retrieval](Retrieval.md)
-
-
 ## Citation 
-This work has been submitted for publication and is currently under review. A preprint is available [here](https://www.overleaf.com/read/mfqvfxjbfrwh) and comments from the community are welcome. 
+This work has been submitted for publication in Nature Astronomy and is currently under review. A preprint is available [here](https://www.overleaf.com/read/mfqvfxjbfrwh) and comments from the community are welcome. 
 
 If you use any of these algorithms in your work please include Kyle A. Pearson as a coauthor. Current institution: Lunar and Planetary Laboratory, University of Arizona, 1629 East University Boulevard, Tucson, AZ, 85721, USA
-
-## Future updates
-- Documentation for retrieval
-- implement RV fitting to reduce degeneracies
-- include multiple O-C signals for simulatenous retrieval of planet 1 + 2 mass
