@@ -81,11 +81,23 @@ ttv_data = {
 ```
 
 ## Estimating Planet Orbits
-The presence of additional planets or even moons in an exoplanet system can be inferred by measuring perturbations in the orbit of a transiting exoplanet. The gravitational influence from the campanion, even if it is non-transiting, can perturb the transiting planet in a manner characteristic to the orbit of the perturbing planet. The plot below is a time series analysis for the object TOI 193.01 using the data from the Transiting Exoplanet Survey Satellite. The top subplot shows a full timeseries for data from sectors 1–2 with the mid transit of each light curve plotted as a green triangle. The bottom left subplot shows a phase folded light curve that has been fit with a transit model to derive the planetary parameters shown in the table on the far right. The green data points are phase folded and binned to a cadence of 2 minutes. The dotted line in the O-C plot represents one sigma uncertainties on the linear ephemeris. The middle right subplot shows a transit periodogram for the PDC Flux and for the residuals of the time series, after each light curve has been removed
+The presence of additional planets or even moons in an exoplanet system can be inferred by measuring perturbations in the orbit of a transiting exoplanet. The gravitational influence from the campanion, even if it is non-transiting, can perturb the transiting planet in a manner characteristic to the orbit of the perturbing planet. 
+
+![](figures/nested_nbody_fit.png)
+
+
+
+## Machine learning 
+In order to derive robust uncertainties or even compare the significance of a perturbation the Bayesian evidence is used. Retrieving parameters typically takes ~5000 N-body simulations, which can take up to 10 hours or more depending on the size of the prior and how long each N-body integration is. This is where we leverage machine learning in order to estimate our priors and expedite the retrieval. Machine learning is used to estimate the parameters of a new planet based on the O-C data and the known system parameters; M*, M1 and P1. The estimate from a neural network is used to constrain the priors in a parameter retrieval using nested sampling. 
+
+![](figures/nn_prior.png)
+
+## Science
+The plot below is a time series analysis for the object TOI 193.01 using the data from the [Transiting Exoplanet Survey Satellite](https://www.nasa.gov/tess-transiting-exoplanet-survey-satellite/). The top subplot shows a full timeseries of data from sectors 1–2 with the mid transit of each light curve plotted as a green triangle. The bottom left subplot shows a phase folded light curve that has been fit with a transit model to derive the planetary parameters shown in the table on the far right. The green data points are phase folded and binned to a cadence of 2 minutes. The dotted line in the O-C plot represents one sigma uncertainties on the linear ephemeris. The middle right subplot shows a transit periodogram for the PDC Flux and for the residuals of the time series, after each light curve has been removed
 
 ![](figures/timeseries_183985250.png)
 
-In order to derive robust uncertainties or even compare the significance of a perturbation the Bayesian evidence is used. Retrieving parameters typically takes ~5000 N-body simulations, which can take up to 10 hours or more depending on the size of the prior and how long each N-body integration is. This is where we leverage machine learning in order to estimate our priors and expedite the retrieval. Machine learning is used to estimate the parameters of a new planet based on the O-C data and the known system parameters; M*, M1 and P1. The estimate from a neural network is used to constrain the priors in a parameter retrieval using nested sampling. The residuals of a linear ephemeris are plotted and then compared against a non-linear ephemeris computed from an N-body simulation in the figure below. The values in the legend indicate the Bayesian evidence output from MultiNest. There is a degenerate solution set with two possible modes; a new planet with 45.1 M_Earth, 1.52 day period, 0 eccentricity and a 58.3 M_Earth planet at 1.65 day period with an eccentricity of 0.03. The red shaded region indicates the variability in the TTV signal as a result of the uncertainties in the derived parameters.
+The residuals of a linear ephemeris are plotted and then compared against a non-linear ephemeris computed from an N-body simulation in the figure below. The values in the legend indicate the Bayesian evidence output from MultiNest. There is a degenerate solution set with two possible modes; a new planet with 45.1 M_Earth, 1.52 day period, 0 eccentricity and a 58.3 M_Earth planet at 1.65 day period with an eccentricity of 0.03. The red shaded region indicates the variability in the TTV signal as a result of the uncertainties in the derived parameters.
 
 ![](figures/planetX_ttvfit.png)
 
@@ -93,7 +105,7 @@ Posteriors for the N-body parameters are available [here](figures/planetX_nbody_
 
 Click the links below for more information on each step of the analysis
 - [Creating a Machine Learning Model](simulations/)
-- Nested Sampling Retrieval
+- [Nested Sampling Retrieval](Retrieval.md)
 
 
 ## Citation 

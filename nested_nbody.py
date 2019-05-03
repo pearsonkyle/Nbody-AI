@@ -4,16 +4,14 @@ import pickle
 import corner 
 import copy
 
-
-from nbody.simulation import randomize, generate, integrate, analyze, report
-from nbody.tools import mjup,msun,mearth,G,au,rearth,sa
-
 import matplotlib
 import matplotlib.pyplot as plt
-from matplotlib.colors import LinearSegmentedColormap
+#from matplotlib.colors import LinearSegmentedColormap
 
-from nbody.ai import build_encoder()
+from nbody.ai import build_encoder
 from nbody.nested import lfit, nlfit
+from nbody.simulation import generate, analyze, report
+from nbody.tools import mjup,msun,mearth,G,au,rearth,sa
 
 def shift_align(ttv_data,ttv,xx,yerr, return_chi=False):
     chis = []
@@ -81,35 +79,65 @@ def get_stats(posterior,percentile,custom_mask=-1):
 # plt.plot(xx,yy,'ko');plt.plot(epochs[xx],ttv[xx],'r-'); plt.plot(epochs[xx],np.roll(ttv,-2)[xx],'g-'); plt.show()
 # import pdb; pdb.set_trace() 
 
+
 if __name__ == "__main__":
-    
+    parser = argparse.ArgumentParser()
+    help_ = "Load h5 model trained weights"
+    parser.add_argument("-w", "--weights", help=help_, default="encoder.h5")
+    help_ = "Number of training epochs"
+    parser.add_argument("-e", "--epochs", help=help_, default=10 ,type=int)
+    help_ = "Pickle file of training samples"
+    parser.add_argument("-tr", "--train", help=help_)
+    help_ = "Pickle file of test samples"
+    parser.add_argument("-te", "--test", help=help_)
+    args = parser.parse_args()
+
     # units: Msun, Days, au
-    objects = [{'m': 1.12},
-        {'m': 0.284*mjup/msun,
+    objects = [
+        {'m': 1.12},
+        {'m': 0.25*mjup/msun,
         'inc': 1.570795,
         'e': 0,
         'P': 3.2887967652699728},
-        {'e': 0.06, 'inc': 1.570795, 'm': 66*mearth/msun, 'P': 7.49, } #'omega':np.pi/3, }
+        {'e': 0.06, 'inc': 1.570795, 'm': 100*mearth/msun, 'P': 7.29, 'omega':np.pi/3, }
     ]
 
     # create REBOUND simulation
-    sim = generate(objects, 90, 90*24) 
-    
-    # collect the analytics of interest from the simulation
-    ttv_data = analyze(sim)
-
-    report(ttv_data)    
+    sim_data = generate(objects, 31*objects[1]['P'], int(31*objects[1]['P']*24) ) 
+    ttv_data = analyze(sim_data)
+    report(ttv_data)
 
     # simulate some observational data with noise 
     ttv = ttv_data['planets'][0]['ttv']
     epochs = np.arange(len(ttv))
     ttdata = ttv_data['planets'][0]['tt'] + np.random.normal(0,0.5,len(ttv))/(24*60)
     err = np.random.normal(90,30,len(ttv))/(24*60*60)
-    
+
     # perform nested sampling linear fit to transit data    
-    lstats, lposteriors = lfit(epochs,ttdata,err, 
-                bounds=[ttv_data['planets'][0]['P']-6/24,ttv_data['planets'][0]['P']+6/24, min(ttdata)-1/24,ttv_data['planets'][0]['P']+1/24])
-    ocdata = ttdata - (np.arange(len(ttv_data['planets'][0]['tt']))*lstats['marginals'][0]['median'] + lstats['marginals'][1]['median'] )
+    lstats, lposteriors = lfit( 
+        epochs,ttdata,err, 
+        bounds=[ objects[1]['P']-1, objects[1]['P']+1, 
+                 min(ttdata)-1, objects[1]['P']+1
+        ] 
+    )
+
+    ocdata = ttdata - (epochs*lstats['marginals'][0]['median'] + lstats['marginals'][1]['median'] )
+
+    f = corner.corner(lposteriors[:,2:], 
+                    labels=['Period (day)', 'Mid-transit (day)'],
+                    bins=int(np.sqrt(lposteriors.shape[0])), 
+                    range=[
+                        ( lstats['marginals'][0]['5sigma'][0], lstats['marginals'][0]['5sigma'][1]),
+                        ( lstats['marginals'][1]['5sigma'][0], lstats['marginals'][1]['5sigma'][1]),
+                    ],
+                    #no_fill_contours=True,
+                    plot_contours=False,
+                    plot_density=False,
+                    data_kwargs={'c':lposteriors[:,1],'vmin':np.percentile(lposteriors[:,1],10),'vmax':np.percentile(lposteriors[:,1],50) },
+                    )
+    plt.show()
+
+    dude()
 
     # estimate priors
     bounds = []

@@ -98,7 +98,8 @@ optional arguments:
 Uncertainties in the FC network after 100 training epochs before additional omega training samples
 ![](FC_hist.png)
 
-Uncertainties in each portion of the parameter space 
+Uncertainties in each portion of the parameter space. x-axis earth mass, y-axis period ratio (P2/P1)
+
 ![](FC_errors.png)
 
 ![](model_loss.png)

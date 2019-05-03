@@ -56,8 +56,8 @@ if __name__ == '__main__':
 
     encoder = build_encoder(
         input_dims=[X.shape[1],z.shape[1]], 
-        layer_sizes=[ [8,8], [32,64] ],
-        combined_layers = [256,128,32], 
+        layer_sizes=[ [8,8], [64,64] ],
+        combined_layers = [128,128,32], 
         dropout=0.3,  
         output_dim=y.shape[1]
     )

@@ -20,3 +20,4 @@ if __name__ == "__main__":
 
     # plot the results 
     report(ttv_data, savefile='report.png')
+    
