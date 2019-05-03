@@ -4,14 +4,13 @@ Requirements
 1. Planetary Parameters (M*, M1, P1)
 2. Mid transit values (or light curves)
 
-If you have a bunch of light curve and no mid transit values see the [exoplanet light curve analysis repo](https://github.com/pearsonkyle/Exoplanet-Light-Curve-Analysis) for how to easily model a light curve. 
+If you have a bunch of light curve and no mid transit values see the [exoplanet light curve analysis repo](https://github.com/pearsonkyle/Exoplanet-Light-Curve-Analysis) in order to model a light curve.
 
 ## Linear Ephemeris 
-Orbital periods for exoplanets are defined by their periodic motion around a star. The transit time for an exoplanet can be modelled as the function: 
-`t_next = P * epoch + t0`
-Where P is the orbital period, t0 is the epoch of mid transit, epoch is the number of transits between t0 and t_next. A visual representation of this equation is below 
+Orbital periods for exoplanets are defined by their periodic motion around a star using a linear function. The transit time for an exoplanet can be modelled as the function: 
 
 ![](figures/linear_ephemeris.png)
+Where P is the orbital period, t0 is the epoch of mid transit, epoch is the number of transits between t0 and t_next. 
 
 Fitting orbital periods can be done very quickly using a linear least squares fit
 ```python
@@ -90,9 +89,9 @@ optional arguments:
 The residuals of a linear fit are used to search for perturbations in the orbit that might indicate the presence of another planet
 
 ```
-python nl_fit.py -i transittimes.txt -ms 1.0 -m1 34.2
+python nl_fit.py -i transittimes.txt -ms 1.12 -m1 3000
 ```
-The transit times are modeled for WASP-18 b using an N-body simulation. The Bayesian evidence for a non-linear ephemeris is larger than a linear ephemeris contradicting the ttv analysis in the recent publication in [Shporer 2018](https://arxiv.org/abs/1811.06020) 
+The transit times are modeled for WASP-18 b using an N-body simulation. The Bayesian evidence for a non-linear ephemeris is larger than a linear ephemeris suggesting our model with an 3 planets is a better fit than a 2 body system. 
 
 ![](figures/wasp18_ttv_fit.png)
 
