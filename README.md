@@ -95,13 +95,13 @@ In order to derive robust uncertainties or even compare the significance of a pe
 See documentation for [machine learning](simulations/)
 
 ## Science
-The plot below is a time series analysis for the object TOI 193.01 using the data from the [Transiting Exoplanet Survey Satellite](https://www.nasa.gov/tess-transiting-exoplanet-survey-satellite/). The top subplot shows a full timeseries of data from sectors 1–2 with the mid transit of each light curve plotted as a green triangle. The bottom left subplot shows a phase folded light curve that has been fit with a transit model to derive the planetary parameters shown in the table on the far right. The green data points are phase folded and binned to a cadence of 2 minutes. The dotted line in the O-C plot represents one sigma uncertainties on the linear ephemeris. The middle right subplot shows a transit periodogram for the PDC Flux and for the residuals of the time series, after each light curve has been removed
+The plot below is a time series analysis for the object WASP-18 b using the data from the [Transiting Exoplanet Survey Satellite](https://www.nasa.gov/tess-transiting-exoplanet-survey-satellite/). The top subplot shows a full timeseries of data from sectors 1–2 with the mid transit of each light curve plotted as a green triangle. The bottom left subplot shows a phase folded light curve that has been fit with a transit model to derive the planetary parameters shown in the table on the far right. The green data points are phase folded and binned to a cadence of 2 minutes. The dotted line in the O-C plot represents one sigma uncertainties on the linear ephemeris. The middle right subplot shows a transit periodogram for the PDC Flux and for the residuals of the time series, after each light curve has been removed
 
-![](figures/timeseries_183985250.png)
+![](figures/timeseries_100100827.png)
 
 The residuals of a linear ephemeris are plotted and then compared against a non-linear ephemeris computed from an N-body simulation in the figure below. The values in the legend indicate the Bayesian evidence output from MultiNest. There is a degenerate solution set with two possible modes; a new planet with 45.1 M_Earth, 1.52 day period, 0 eccentricity and a 58.3 M_Earth planet at 1.65 day period with an eccentricity of 0.03. The red shaded region indicates the variability in the TTV signal as a result of the uncertainties in the derived parameters.
 
-![](figures/planetX_ttvfit.png)
+![](figures/wasp18_ttv_fit.png)
 
 ## Citation 
 This work has been submitted for publication in Nature Astronomy and is currently under review. A preprint is available [here](https://www.overleaf.com/read/mfqvfxjbfrwh) and comments from the community are welcome. 

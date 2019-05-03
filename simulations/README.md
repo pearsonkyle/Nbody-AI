@@ -106,7 +106,8 @@ Uncertainties in each portion of the parameter space. x-axis earth mass, y-axis 
 
 Finally we can estimate the prior and planetary parameters using the trained neural network. The prior is used to expedite a parameter retrieval using [nested sampling]().
 
-![](NN_estimate.png)
+![](nn_prior1.png)
+![](nn_prior2.png)
 
 ## Example commands from start to finish
 ```
