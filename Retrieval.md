@@ -1,6 +1,3 @@
-# N-Body TTV Retrieval
-A python 3 package for generating N-body simulations, computing transit timing variations (TTV) and retrieving orbit parameters and uncertainties from TTV measurements within a Bayesian framework. Machine learning is used to estimate the orbit parameters and constrain priors in order to expedite the analysis to find new planets.
-
 ## Getting started
 
 Requirements
@@ -73,7 +70,11 @@ outputs from the linear fit should something like this since they come from the 
  'nested sampling global log-evidence': -28.36049634744804,
  'nested sampling global log-evidence error': 0.21417949940030861}
 ```
-The command line interface for linear 
+![](figures/lfit_posterior.png)
+
+The colors are coordinated to the fit percentile with darker colors indicating better fits. 
+
+The command line interface for performing a linear fit to a file of data:
 ```
 usage: l_fit.py [-h] [-i INPUT] [-m SLOPE] [-b YINT]
 
