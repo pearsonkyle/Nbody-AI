@@ -57,7 +57,7 @@ import tensorflow as tf
 from nbody.ai import build_encoder
 
 encoder = build_encoder(
-    input_dims=[3,20], 
+    input_dims=[3,30], 
     layer_sizes=[ [8,8], [32,32] ],
     combined_layers = [128,64,32], 
     dropout=0.25,  
@@ -73,7 +73,7 @@ encoder.compile(
 )
 ```
 
-The encoder has two inputs: the 20 O-C data points and 3 parameters. An encoder/regression neural network will look something like this: 
+The encoder has two inputs: the 30 O-C data points and 3 parameters. An encoder/regression neural network will look something like this: 
 
 ![](encoder.png)
 
@@ -95,10 +95,10 @@ optional arguments:
 ```
 
 ## Training and Validation 
-Uncertainties in the FC network after 100 training epochs before additional omega training samples
+Uncertainties in the FC network after 250 training epochs
 ![](FC_hist.png)
 
-Uncertainties in each portion of the parameter space. x-axis earth mass, y-axis period ratio (P2/P1)
+Uncertainties in each portion of the parameter space,x-axis: earth mass, y-axis: period ratio (P2/P1)
 
 ![](FC_errors.png)
 
