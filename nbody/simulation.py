@@ -157,7 +157,7 @@ def analyze(m, ttvfast=False):
     if ttvfast:
         tt = transit_times( m['pdata'][0]['x'], m['star']['x'], m['times'] )
         ttv,per,t0 = TTV(np.arange(len(tt)),tt )
-        return np.arange(len(ttv)),ttv
+        return np.arange(len(ttv)),ttv,tt
 
     RV = np.diff(m['star']['x'])*1.496e11*m['dt'] # measurements -> seconds
     

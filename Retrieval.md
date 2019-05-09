@@ -87,7 +87,32 @@ optional arguments:
 ```
 ## Nonlinear Ephemeris 
 The residuals of a linear fit are used to search for perturbations in the orbit that might indicate the presence of another planet
+```
+usage: nl_fit.py [-h] [-i INPUT] [-ms MSTAR] [-t TMID] [-m1 MASS1]
+                 [-p1 PERIOD1] [-m2 MASS2] [-p2 PERIOD2] [-o2 OMEGA2]
+                 [-e2 ECCENTRICITY2] [-ml AI]
 
+optional arguments:
+  -h, --help            show this help message and exit
+  -i INPUT, --input INPUT
+                        Input file with 3 columns of data (x,y,yerr) 
+  -ms MSTAR, --mstar MSTAR
+                        stellar mass
+  -t TMID, --tmid TMID  mid transit prior
+  -m1 MASS1, --mass1 MASS1
+                        planet 1 mass (earth)
+  -p1 PERIOD1, --period1 PERIOD1
+                        planet 1 period (earth)
+  -m2 MASS2, --mass2 MASS2
+                        planet 2 mass prior (earth)
+  -p2 PERIOD2, --period2 PERIOD2
+                        planet 2 period prior (day)
+  -o2 OMEGA2, --omega2 OMEGA2
+                        planet 2 omega prior (radian)
+  -e2 ECCENTRICITY2, --eccentricity2 ECCENTRICITY2
+                        planet 2 eccentricity prior (radian)
+  -ml AI, --ai AI       machine learning prior estimate
+```
 ```
 python nl_fit.py -i transittimes.txt -ms 1.12 -m1 3000
 ```

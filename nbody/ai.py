@@ -27,6 +27,11 @@ def build_encoder( input_dims=[3,20], layer_sizes=[ [32,32,32], [32,32,32] ],
 
     return tf.keras.Model(inputs=inputs, outputs=output, name='encoder')
 
+def ml_estimate(x,y):
+    # TODO 
+    return {'m':1,'P':1,'e':0,'omega':0}
+
+
 '''
 def build_cnn_encoder(par_dim=3, oc_dim=20, layer_sizes=[32*8,32*4,32*2], conv_layers=[32,32,8], dropout=0.5, output_dim=4):
 
