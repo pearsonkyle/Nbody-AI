@@ -26,12 +26,10 @@ def shift_align(ttv_data,ttv,xx,yerr, return_chi=False):
         i = np.argmax(chis)
         return np.roll(ttv, -i)
 
-def get_stats(posterior,percentile,custom_mask=-1):
+def get_stats(posterior,percentile=50):
     
     stats = []
     mask = (posterior[:,1] < np.percentile(posterior[:,1],percentile))
-    if np.sum(custom_mask) != -1:
-        mask = mask & custom_mask
 
     for i in range(2, posterior.shape[1]):
         b = list(zip(posterior[mask,0], posterior[mask,i]))

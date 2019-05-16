@@ -24,6 +24,9 @@ maxavg = lambda x: (np.percentile(np.abs(x),75)+np.max(np.abs(x))  )*0.5
 # keplerian semi-major axis (au)
 sa = lambda m,P : (G*m*P**2/(4*np.pi**2) )**(1./3) 
 
+# approximate radial velocity semi-amplitude 
+rv_semi = lambda M,m,a : (G*m*m/(M*a))**0.5
+
 # assume a relationship between stellar mass and radius from 
 # (http://ads.harvard.edu/books/hsaa/toc.html)
 mms = [40,18, 6.5,3.2,2.1,1.7,1.3,1.1 ,1,0.93,0.78,0.69,0.47,0.21,0.1]  # M/Msun

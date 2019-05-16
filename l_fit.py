@@ -25,8 +25,8 @@ if __name__ == "__main__":
     lstats, lposteriors = lfit( 
         data[:,0], data[:,1], data[:,2],
         bounds=[ 
-            args.slope-1, args.slope+1, 
             args.yint-1, args.yint+1, 
+            args.slope-1, args.slope+1, 
         ] 
     )
     
@@ -34,7 +34,7 @@ if __name__ == "__main__":
 
     f = corner.corner(
         lposteriors[:,2:], 
-        labels=['Slope', 'Y-intercept'],
+        labels=['Y-intercept', 'Slope'],
         bins=int(np.sqrt(lposteriors.shape[0])), 
         range=[
             ( lstats['marginals'][0]['5sigma'][0], lstats['marginals'][0]['5sigma'][1]),

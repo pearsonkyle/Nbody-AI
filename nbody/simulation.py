@@ -152,6 +152,13 @@ def transit_times(xp,xs,times):
             tt.append( find_zero(times[i-1],dx[i-1], times[i],dx[i]) )
     return np.array(tt)
 
+def TTV(epochs, tt):
+    N = len(epochs)
+    A = np.vstack([np.ones(N), epochs]).T
+    b, m = np.linalg.lstsq(A, tt, rcond=None)[0]
+    ttv = (tt-m*np.array(epochs)-b)
+    return [ttv,m,b]
+
 def analyze(m, ttvfast=False):
 
     if ttvfast:
