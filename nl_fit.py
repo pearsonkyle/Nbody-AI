@@ -9,7 +9,8 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
 from matplotlib import cm
 
-from nbody.nested import lfit, nlfit
+from nbody.simulation import generate, analyze
+from nbody.nested import lfit, nlfit, nbody_limits
 from nbody.tools import msun, mearth
 
 if __name__ == "__main__":
@@ -102,18 +103,18 @@ if __name__ == "__main__":
         'Omega 2 [radian]',
     ]
 
-    ranges = [ (stats['marginals'][i]['5sigma'][0], stats['marginals'][i]['5sigma'][1]) for i in range(len(stats['marginals'])) ]
+    ranges = [ (nlstats['marginals'][i]['5sigma'][0], nlstats['marginals'][i]['5sigma'][1]) for i in range(len(nlstats['marginals'])) ]
     
     inf = cm.get_cmap('nipy_spectral', 256)
     newcmp = ListedColormap( inf(np.linspace(0,0.75,256))  )
 
-    f = corner.corner(posteriors[:,2:], 
+    f = corner.corner(nlposteriors[:,2:], 
         labels= labels,
-        bins=int(np.sqrt(posteriors.shape[0])), 
+        bins=int(np.sqrt(nlposteriors.shape[0])), 
         range= ranges,
         plot_contours=False,
         plot_density=False,
-        data_kwargs={'c':posteriors[:,1],'vmin':np.percentile(posteriors[:,1],1),'vmax':np.percentile(posteriors[:,1],50),'cmap':newcmp },
+        data_kwargs={'c':nlposteriors[:,1],'vmin':np.percentile(nlposteriors[:,1],1),'vmax':np.percentile(nlposteriors[:,1],50),'cmap':newcmp },
     )
     plt.savefig('ttv_posterior.png',bbox_inches='tight')
     plt.close()
@@ -142,13 +143,6 @@ if __name__ == "__main__":
     plt.savefig('ttv_model.png',bbox_inches='tight')
     plt.close()
 
-
-
-
-
-    # TODO 
-    # full test again
-    # example command line args for sample data 
-
+    # TODO: test all command line arguments
     # run nl_fit.py -i sim_data.txt -p1 3.2888 -tm 0.82 -m1 79.45 -m2 31 -p2 7
     # 3.46 hours 

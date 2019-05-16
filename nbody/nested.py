@@ -154,7 +154,7 @@ def get_stats(posterior,percentile=50):
             '1sigma': [low1, high1],
             '2sigma': [low2, high2],
             '3sigma': [low3, high3],
-            '5sigma': [low5, high5],
+            '3sigma': [low5, high5],
             'q75%': q1,
             'q25%': q3,
             'q99%': q99,
@@ -166,14 +166,13 @@ def get_stats(posterior,percentile=50):
 
 
 def nbody_limits( newobj, nlstats, ttv):
-        
-    # TODO create wrapper 
+    # TODO create wrapper?
     upper = np.copy( ttv )
     lower = np.copy( ttv )
     
     obj = copy.deepcopy(newobj)
-    obj[2]['m'] = nlstats['marginals'][3]['5sigma'][0]
-    obj[2]['omega'] = nlstats['marginals'][5]['5sigma'][0]
+    obj[2]['m'] = nlstats['marginals'][3]['3sigma'][0]
+    obj[2]['omega'] = nlstats['marginals'][5]['3sigma'][0]
     sim_data = generate(obj, newobj[1]['P']* (len(ttv)+1), int( (len(ttv)+1)*newobj[1]['P']*24) )
     ttv_data = analyze(sim_data)
     for i in range( len(ttv_data['planets'][0]['ttv']) ):
@@ -184,8 +183,7 @@ def nbody_limits( newobj, nlstats, ttv):
             pass
 
     obj = copy.deepcopy(newobj)
-    obj[2]['m'] = nlstats['marginals'][3]['5sigma'][0]
-    obj[2]['omega'] = nlstats['marginals'][5]['5sigma'][1]
+    obj[2]['m'] = nlstats['marginals'][3]['3sigma'][0]
     sim_data = generate(obj, newobj[1]['P']* (len(ttv)+1), int( (len(ttv)+1)*newobj[1]['P']*24) )
     ttv_data = analyze(sim_data)
     for i in range( len(ttv_data['planets'][0]['ttv']) ):
@@ -196,8 +194,7 @@ def nbody_limits( newobj, nlstats, ttv):
             pass
 
     obj = copy.deepcopy(newobj)
-    obj[2]['m'] = nlstats['marginals'][3]['5sigma'][1]
-    obj[2]['omega'] = nlstats['marginals'][5]['5sigma'][0]
+    obj[2]['m'] = nlstats['marginals'][3]['3sigma'][1]
     sim_data = generate(obj, newobj[1]['P']* (len(ttv)+1), int( (len(ttv)+1)*newobj[1]['P']*24) )
     ttv_data = analyze(sim_data)
     for i in range( len(ttv_data['planets'][0]['ttv']) ):
@@ -208,8 +205,32 @@ def nbody_limits( newobj, nlstats, ttv):
             pass
 
     obj = copy.deepcopy(newobj)
-    obj[2]['m'] = nlstats['marginals'][3]['5sigma'][1]
-    obj[2]['omega'] = nlstats['marginals'][5]['5sigma'][1]
+    obj[2]['m'] = nlstats['marginals'][3]['3sigma'][0]
+    obj[2]['omega'] = nlstats['marginals'][5]['3sigma'][1]
+    sim_data = generate(obj, newobj[1]['P']* (len(ttv)+1), int( (len(ttv)+1)*newobj[1]['P']*24) )
+    ttv_data = analyze(sim_data)
+    for i in range( len(ttv_data['planets'][0]['ttv']) ):
+        try:
+            upper[i] = max( upper[i],ttv_data['planets'][0]['ttv'][i] )
+            lower[i] = min( lower[i],ttv_data['planets'][0]['ttv'][i] )
+        except:
+            pass
+
+    obj = copy.deepcopy(newobj)
+    obj[2]['m'] = nlstats['marginals'][3]['3sigma'][1]
+    obj[2]['omega'] = nlstats['marginals'][5]['3sigma'][0]
+    sim_data = generate(obj, newobj[1]['P']* (len(ttv)+1), int( (len(ttv)+1)*newobj[1]['P']*24) )
+    ttv_data = analyze(sim_data)
+    for i in range( len(ttv_data['planets'][0]['ttv']) ):
+        try:
+            upper[i] = max( upper[i],ttv_data['planets'][0]['ttv'][i] )
+            lower[i] = min( lower[i],ttv_data['planets'][0]['ttv'][i] )
+        except:
+            pass
+
+    obj = copy.deepcopy(newobj)
+    obj[2]['m'] = nlstats['marginals'][3]['3sigma'][1]
+    obj[2]['omega'] = nlstats['marginals'][5]['3sigma'][1]
     sim_data = generate(obj, newobj[1]['P']* (len(ttv)+1), int( (len(ttv)+1)*newobj[1]['P']*24) )
     ttv_data = analyze(sim_data)
     for i in range( len(ttv_data['planets'][0]['ttv']) ):
