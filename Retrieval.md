@@ -88,17 +88,18 @@ optional arguments:
 ## Nonlinear Ephemeris 
 The residuals of a linear fit are used to search for perturbations in the orbit that might indicate the presence of another planet
 ```
-usage: nl_fit.py [-h] [-i INPUT] [-ms MSTAR] [-t TMID] [-m1 MASS1]
+usage: nl_fit.py [-h] [-i INPUT] [-ms MSTAR] [-tm TMID] [-m1 MASS1]
                  [-p1 PERIOD1] [-m2 MASS2] [-p2 PERIOD2] [-o2 OMEGA2]
                  [-e2 ECCENTRICITY2] [-ml AI]
 
 optional arguments:
   -h, --help            show this help message and exit
   -i INPUT, --input INPUT
-                        Input file with 3 columns of data (x,y,yerr) 
+                        Input file with 3 columns of data (x,y,yerr)
   -ms MSTAR, --mstar MSTAR
                         stellar mass
-  -t TMID, --tmid TMID  mid transit prior
+  -tm TMID, --tmid TMID
+                        mid transit prior
   -m1 MASS1, --mass1 MASS1
                         planet 1 mass (earth)
   -p1 PERIOD1, --period1 PERIOD1
@@ -111,24 +112,23 @@ optional arguments:
                         planet 2 omega prior (radian)
   -e2 ECCENTRICITY2, --eccentricity2 ECCENTRICITY2
                         planet 2 eccentricity prior (radian)
-  -ml AI, --ai AI       machine learning prior estimate
 ```
 ```
-python nl_fit.py -i transittimes.txt -ms 1.12 -m1 3000
+python nl_fit.py -i sim_data.txt -p1 3.2888 -tm 0.82 -m1 79.45 -m2 31 -p2 7
 ```
 The transit times are modeled for WASP-18 b using an N-body simulation. The Bayesian evidence for a non-linear ephemeris is larger than a linear ephemeris suggesting our model with an 3 planets is a better fit than a 2 body system. 
 
 ![](figures/wasp18_ttv_fit.png)
 
-Posteriors for the fit will looks like this:
+Posteriors for mass and period of the fit will looks like this:
 
 ![](figures/wasp18_nbody_posterior_color.png)
 
 ## Validation 
 Retrieval results from a simulated data set
 
-![](figures/nested_nbody_fit.png)
-![](figures/nbody_eccentricity_validation.png)
+![](figures/ttv_model.png)
+![](figures/ttv_posterior.png)
 
 See file `nested_nbody.py`
 
