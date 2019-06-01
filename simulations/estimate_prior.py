@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import tensorflow as tf
 
 from nbody.ai import build_encoder 
-from nbody.simulation import generate, analyze, report
+from nbody.simulation import generate, analyze, report, TTV
 from nbody.tools import mjup,msun,mearth
 
 def load_data(fname='Xy30_6.pkl', npts=30, noise=False):
@@ -26,21 +26,34 @@ def load_data(fname='Xy30_6.pkl', npts=30, noise=False):
         return X, y, z
 
 if __name__ == '__main__':
-    # TODO 
+
     parser = argparse.ArgumentParser()
-    help_ = "Load h5 model trained weights"
-    parser.add_argument("-w", "--weights", help=help_, default="encoder.h5")
-    help_ = "Number of training epochs"
-    parser.add_argument("-e", "--epochs", help=help_, default=10 ,type=int)
     help_ = "Pickle file of training samples"
     parser.add_argument("-tr", "--train", help=help_)
+    help_ = "Input file with 3 columns of data (x,y,yerr)"
+    parser.add_argument("-i", "--input", help=help_)
+    help_ = "stellar mass"
+    parser.add_argument("-ms", "--mstar", help=help_, default=1, type=float)
+    help_ = "planet 1 mass (earth)"
+    parser.add_argument("-m1", "--mass1", help=help_, default=79.45, type=float)
+    help_ = "planet 1 period (earth)"
+    parser.add_argument("-p1", "--period1", help=help_, default=3.2888, type=float)
     args = parser.parse_args()
+    parser = argparse.ArgumentParser()
 
     # train
     X,y,z = load_data(args.train, noise=True)
     Xs = X/X.max(0) # M* [sun], P1 [day], M1 [earth]
     zs = z/z.max(0) # O-C data 
     ys = y/y.max(0) # P2 [day], M2 [earth], omega2 [rad], ecc2
+
+    data = np.loadtxt(args.input)
+    ttv,p,tm = TTV(data[:,0], data[:,1])
+
+    xf = np.array( [[args.mstar, args.period1, args.mass1]] )
+    xf /= X.max(0)
+    zf = np.array( [ttv*24*60] )
+    zf /= z.max(0)
 
     encoder = build_encoder(
         input_dims=[X.shape[1],z.shape[1]], 
@@ -64,76 +77,81 @@ if __name__ == '__main__':
         metrics=['accuracy']
     )
 
-
-    ypred = encoder.predict([Xs,zs])
+    ypred = encoder.predict([xf,zf])
     ypred *= y.max(0)
-    # P2, M2, omega2, ecc2 
-    i = np.random.randint(X.shape[0])
 
-    true_objects = [
-        {'m':X[i,0]},
-        {'m':X[i,2]*mearth/msun, 'P':X[i,1], 'inc':3.14159/2, 'e':0, 'omega':0  }, 
-        {'m':y[i,1]*mearth/msun, 'P':y[i,0], 'inc':3.14159/2, 'e':y[i,3],  'omega':y[i,2]  }, 
-    ]
-    sim_data = generate(true_objects, X[i,1]*20, int(X[i,1]*20*24) )
-    ttv_true = analyze(sim_data)
+    # P2, M2, omega2, ecc2 
+    i = 0
 
     pred = [
-        {'m':X[i,0]},
-        {'m':X[i,2]*mearth/msun, 'P':X[i,1], 'inc':3.14159/2, 'e':0, 'omega':0  }, 
+        {'m':args.mstar},
+        {'m':args.mass1, 'P':args.period1, 'inc':3.14159/2, 'e':0, 'omega':0  }, 
         {'m':(ypred[i,1])*mearth/msun, 'P':ypred[i,0], 'inc':3.14159/2, 'e':ypred[i,3],  'omega':ypred[i,2]  }, 
     ]
-    sim_data = generate(pred, X[i,1]*20, int(X[i,1]*20*24) )
+    sim_data = generate(pred, max(data[:,1]), int(max(data[:,1])*24) ) 
     ttv_pred = analyze(sim_data)
 
+    plt.errorbar(
+        data[:,0],
+        ttv*24*60,
+        yerr=data[:,2]*24*60, 
+        ls='none',marker='o', label='Data', color='black'
+    )
+    plt.plot(ttv_pred['planets'][0]['ttv']*24*60,'g--', label='NN Estimate')
+
+    plt.show()
+
+    # TODO fix this 
+
+    '''
     pred = [
-        {'m':X[i,0]},
-        {'m':X[i,2]*mearth/msun, 'P':X[i,1], 'inc':3.14159/2, 'e':0, 'omega':0  }, 
+        {'m':args.mstar},
+        {'m':args.mass1, 'P':args.period1, 'inc':3.14159/2, 'e':0, 'omega':0  }, 
         {'m':(ypred[i,1]+19)*mearth/msun, 'P':ypred[i,0], 'inc':3.14159/2, 'e':ypred[i,3],  'omega':ypred[i,2]-0.5  }, 
     ]
     sim_data = generate(pred, X[i,1]*20, int(X[i,1]*20*24) )
     ttv_upper1 = analyze(sim_data)
 
     pred = [
-        {'m':X[i,0]},
-        {'m':X[i,2]*mearth/msun, 'P':X[i,1], 'inc':3.14159/2, 'e':0, 'omega':0  }, 
+        {'m':args.mstar},
+        {'m':args.mass1, 'P':args.period1, 'inc':3.14159/2, 'e':0, 'omega':0  }, 
         {'m':(ypred[i,1]+19)*mearth/msun, 'P':ypred[i,0], 'inc':3.14159/2, 'e':ypred[i,3],  'omega':ypred[i,2]+0.5  }, 
     ]
     sim_data = generate(pred, X[i,1]*20, int(X[i,1]*20*24) )
     ttv_upper2 = analyze(sim_data)
 
     pred = [
-        {'m':X[i,0]},
-        {'m':X[i,2]*mearth/msun, 'P':X[i,1], 'inc':3.14159/2, 'e':0, 'omega':0  }, 
+        {'m':args.mstar},
+        {'m':args.mass1, 'P':args.period1, 'inc':3.14159/2, 'e':0, 'omega':0  }, 
         {'m':(ypred[i,1]+19)*mearth/msun, 'P':ypred[i,0]+1, 'inc':3.14159/2, 'e':ypred[i,3],  'omega':ypred[i,2]-0.5  }, 
     ]
     sim_data = generate(pred, X[i,1]*20, int(X[i,1]*20*24) )
     ttv_upper11 = analyze(sim_data)
 
     pred = [
-        {'m':X[i,0]},
-        {'m':X[i,2]*mearth/msun, 'P':X[i,1], 'inc':3.14159/2, 'e':0, 'omega':0  }, 
+        {'m':args.mstar},
+        {'m':args.mass1, 'P':args.period1, 'inc':3.14159/2, 'e':0, 'omega':0  }, 
         {'m':(ypred[i,1]+19)*mearth/msun, 'P':ypred[i,0]-1, 'inc':3.14159/2, 'e':ypred[i,3],  'omega':ypred[i,2]+0.5  }, 
     ]
     sim_data = generate(pred, X[i,1]*20, int(X[i,1]*20*24) )
     ttv_upper22 = analyze(sim_data)
 
     pred = [
-        {'m':X[i,0]},
-        {'m':X[i,2]*mearth/msun, 'P':X[i,1], 'inc':3.14159/2, 'e':0, 'omega':0  }, 
+        {'m':args.mstar},
+        {'m':args.mass1, 'P':args.period1, 'inc':3.14159/2, 'e':0, 'omega':0  }, 
         {'m':(ypred[i,1]-9)*mearth/msun, 'P':ypred[i,0], 'inc':3.14159/2, 'e':ypred[i,3],  'omega':ypred[i,2]-0.5  }, 
     ]
     sim_data = generate(pred, X[i,1]*20, int(X[i,1]*20*24) )
     ttv_lower1 = analyze(sim_data)
 
     pred = [
-        {'m':X[i,0]},
-        {'m':X[i,2]*mearth/msun, 'P':X[i,1], 'inc':3.14159/2, 'e':0, 'omega':0  }, 
+        {'m':args.mstar},
+        {'m':args.mass1, 'P':args.period1, 'inc':3.14159/2, 'e':0, 'omega':0  }, 
         {'m':(ypred[i,1]-9)*mearth/msun, 'P':ypred[i,0], 'inc':3.14159/2, 'e':ypred[i,3],  'omega':ypred[i,2]+0.5  }, 
     ]
     sim_data = generate(pred, X[i,1]*20, int(X[i,1]*20*24) )
     ttv_lower2 = analyze(sim_data)
-
+    '''
 
     newmin, newmax = [], []
     lists = [
@@ -150,13 +168,8 @@ if __name__ == '__main__':
     # plot the results 
     #report(ttv_true, savefile='report.png')
 
-    plt.plot(ttv_true['planets'][0]['ttv']*24*60,'r-',label='Truth'.format(np.round(y[i],2)) )
-    plt.errorbar(
-        np.arange( ttv_true['planets'][0]['ttv'].shape[0] ),
-        ttv_true['planets'][0]['ttv']*24*60+np.random.normal(0,0.25,ttv_true['planets'][0]['ttv'].shape[0]),
-        yerr=np.random.uniform(0.25,0.5,ttv_true['planets'][0]['ttv'].shape[0]), ls='none',marker='o', label='Data', color='black'
-    )
-    plt.plot(ttv_pred['planets'][0]['ttv']*24*60,'g--', label='NN Estimate'.format(np.round(ypred[i],2)) )
+    #plt.plot(ttv_true['planets'][0]['ttv']*24*60,'r-',label='Truth'.format(np.round(y[i],2)) )
+
 
     plt.fill_between(
         np.arange( ttv_true['planets'][0]['ttv'].shape[0] ),

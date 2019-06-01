@@ -85,7 +85,7 @@ def nlfit( xx,yy,yerr, objects, bounds, myloss='linear'):
     def myloglike(cube, ndim, n_params):
         epochs,ttv,tt = model_sim(cube)
         ttv_data = yy - (cube[1]*xx+cube[0])
-        return -np.sum( ((ttv_data-ttv[xx.astype(int)])/yerr)**2 )*0.5
+        return -np.sum( loss[myloss]( ((ttv_data-ttv[xx.astype(int)])/yerr)**2 ) )*0.5
         # period usually changes ~30 seconds to a minute after N-body integrations
         # therefore the method below subtracts the wrong period from the data
         #ttvm = tt[xx.astype(int)] - (cube[1]*xx+cube[0])
@@ -116,7 +116,8 @@ def nlfit( xx,yy,yerr, objects, bounds, myloss='linear'):
 
     return obj, posteriors, stats
 
-def get_stats(posterior,percentile=50):
+def get_stats(posterior,percentile=75):
+    # perform burn-in by taking top 50th percentile of fits 
     
     stats = []
     mask = (posterior[:,1] < np.percentile(posterior[:,1],percentile))
@@ -154,7 +155,7 @@ def get_stats(posterior,percentile=50):
             '1sigma': [low1, high1],
             '2sigma': [low2, high2],
             '3sigma': [low3, high3],
-            '3sigma': [low5, high5],
+            '5sigma': [low5, high5],
             'q75%': q1,
             'q25%': q3,
             'q99%': q99,
@@ -163,7 +164,6 @@ def get_stats(posterior,percentile=50):
             'q10%': q10,
         })
     return stats
-
 
 def nbody_limits( newobj, nlstats, ttv):
     # TODO create wrapper?

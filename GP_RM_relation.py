@@ -5,13 +5,7 @@ import pandas
 
 import GPy
 
-#G = 6.678e-11 # [m3 kg-1 s-2]
-#mjup = 1.898e27 # kg
-#rjup = 69.911e6 # m 
-#msun = 1.989e30 # kg
-#rsun = 695.508e6 # m 
-#AU = 1.496e11 # m 
-#day2sec = 24*60*60 # s
+from nbody.tools import rjup, rearth, mearth, mjup 
 
 def get_data(keys=['pl_pnum','pl_radj','pl_orbper','pl_ratdor','st_mass', 'pl_bmassj']):
     # query the api for the newest data
@@ -28,7 +22,7 @@ def filter_data(data,filters):
 
 if __name__ == "__main__":
     
-    data = get_data(keys=['pl_pnum','pl_radj','pl_orbper','pl_ratdor','st_mass', 'pl_bmassj','pl_radjerr1','pl_radjerr2'])
+    data = get_data(keys=['pl_pnum','pl_radj','pl_orbper','st_mass', 'pl_bmassj','pl_bmassjerr1','pl_bmassjerr2','pl_radjerr1','pl_radjerr2'])
 
     filters = [
         lambda x: ~x.isnull().any(axis=1),
@@ -46,7 +40,6 @@ if __name__ == "__main__":
 
     y = np.log10(data['pl_bmassj']).values.reshape(-1,1)
 
-
     # create simple GP model
     m = { 
         '1d':GPy.models.GPRegression(X['1d'],y, GPy.kern.RBF(X['1d'].shape[1],ARD=True) ),
@@ -57,22 +50,77 @@ if __name__ == "__main__":
     for k in m.keys():
         m[k].optimize(messages=True,max_f_eval = 1000)
 
+    Xp = np.linspace(0,2,100).reshape(-1,1)
+    
     # compute error in model 
     pred = {}; cov={}
     for k in m.keys():
-        pred[k],cov[k] = m[k].predict(X[k])
-        pred[k] = pred[k].reshape(-1)
-        cov[k] = cov[k].reshape(-1)**0.5
+        try:
+            pred[k],cov[k] = m[k].predict(Xp)
+            pred[k] = pred[k].reshape(-1)
+            cov[k] = cov[k].reshape(-1)**0.5
+        except:
+            pass
+            # '2d' model will fail 
 
-    std = 0.5*(data['pl_radjerr1'].values + np.abs(data['pl_radjerr2']).values)
+    rstd = 0.5*(data['pl_radjerr1'].values + np.abs(data['pl_radjerr2']).values)
+    mstd = 0.5*(data['pl_bmassjerr1'].values + np.abs(data['pl_bmassjerr2']).values)
 
-    # deviation from prediction in terms of prediction uncertainty
-    sigma={}
-    for k in pred.keys():
-        sigma[k] = (pred[k]-y.reshape(-1))/cov[k]
-    
-        print('mean sigma :{:.2f}'.format(np.abs(sigma[k]).mean()),k )
 
+    f,ax = plt.subplots(1)
+    ax.errorbar(data['pl_radj']*rjup/rearth, data['pl_bmassj']*mjup/mearth, 
+        xerr=rstd*rjup/rearth, yerr=mstd*mjup/mearth,
+        ls='none',marker='.', color='black',label='Measured', alpha=0.5,zorder=1,
+    )
+
+    gsort = np.argsort(X['1d'].reshape(-1))
+    ax.plot( 
+        (Xp*rjup/rearth).reshape(-1), 
+        ((10**pred['1d'])*mjup/mearth), 
+        'g-',label='Gaussian Process', lw=2, zorder=2
+    )
+
+    ax.fill_between( 
+        (Xp*rjup/rearth).reshape(-1), 
+        ((10**(pred['1d']+cov['1d']) )*mjup/mearth), 
+        ((10**(pred['1d']-cov['1d']) )*mjup/mearth), 
+        color='green', alpha=0.25, zorder=3
+    )
+
+    try:
+        #ax.plot(
+        #    data['pl_radj']*rjup/rearth, mdata[:,0]*mjup/mearth, 'r-', 
+        #    label='forecaster'
+        #)
+        mdata = np.loadtxt('../forecaster/mrdata.txt')
+        
+        msort = np.argsort( mdata[:,0] ) 
+        ax.fill_between( 
+            (mdata[:,0]*rjup/rearth)[msort],
+            ((mdata[:,1]+mdata[:,2])*mjup/mearth)[msort],
+            ((mdata[:,1]-mdata[:,3])*mjup/mearth)[msort],
+            color='red', alpha=0.25, zorder=3, 
+            label='Chen & Kipping 2016',
+        )
+    except:
+        print('failed on loading forecaster data')
+
+    ax.set_title("Estimated Radius-Mass Relation for Exoplanets")
+    ax.set_xlabel('Radius [Earth]')
+    ax.set_ylabel('Mass [Earth]')
+    ax.set_yscale('log')
+    ax.legend(loc='best')
+    ax.set_xlim([1,20])
+    ax.set_ylim([1,1e4])
+    ax.grid(True,ls='--')
+    #plt.savefig('GP_RM_extended.pdf',bbox_inches='tight')
+    #plt.close()
+    plt.show()
+
+
+
+
+    dude()
     plt.subplots_adjust(top=0.95,bottom=0.06,left=0.07,right=0.96)
     ax = [
         plt.subplot2grid((3, 4), (0, 0), colspan=3,rowspan=3),
@@ -92,7 +140,7 @@ if __name__ == "__main__":
     less1 = np.abs(sigma['2d']) < 1
     more1 = np.abs(sigma['2d']) > 1
 
-    ax[0].errorbar( pred['2d'][less1],data['pl_radj'][less1], marker='.',lw=0, label='{}'.format('2d'),alpha=0.5)
+    #ax[0].errorbar( pred['2d'][less1],data['pl_radj'][less1], marker='.',lw=0, label='{}'.format('2d'),alpha=0.5)
     #ax[0].errorbar( pred['1d'],data['pl_radj'], xerr=cov['1d'], label='{} Estimate'.format('1d'),alpha=0.5)
     
     sidx = np.argsort(data['pl_radj'].values)

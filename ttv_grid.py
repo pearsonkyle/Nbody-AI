@@ -59,6 +59,15 @@ if __name__ == "__main__":
                 extent=[ min(masses)*msun/mearth, max(masses)*msun/mearth, min(periods)/objects[1]['P'],max(periods)/objects[1]['P']],
                 aspect=20 )
 
+    plt.text(2, 2+0.01 , "2:1",color='black')
+    plt.axhline(2/1,ls='--', color='black')
+
+    plt.text(2, 3/2 +0.01, "3:2",color='black')
+    plt.axhline(3/2,ls='--', color='black')
+
+    plt.text(2, 4/3 +0.01, "4:3",color='black')
+    plt.axhline(4/3,ls='--', color='black')
+
     plt.ylabel(r'Period Ratio [P$_{outer}$/P$_{inner}$]')
     plt.xlabel('Mass of Outer Planet [Earth]')
     plt.title("TTV Estimates for an Inner Planet")
@@ -68,3 +77,5 @@ if __name__ == "__main__":
     cbar.set_label('Max TTV [min]', rotation=270, labelpad=10)
     plt.savefig('ttv_grid.pdf',bbox_inches='tight')
     plt.close()
+
+    # after running the rv code 

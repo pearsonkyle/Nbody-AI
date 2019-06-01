@@ -108,13 +108,32 @@ Finally we can estimate the prior and planetary parameters using the trained neu
 
 ![](nn_prior1.png)
 ![](nn_prior2.png)
+```python 
+usage: estimate_prior.py [-h] [-tr TRAIN] [-i INPUT] [-ms MSTAR] [-tm TMID]
+                         [-m1 MASS1] [-p1 PERIOD1]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -tr TRAIN, --train TRAIN
+                        Pickle file of training samples
+  -i INPUT, --input INPUT
+                        Input file with 3 columns of data (x,y,yerr)
+  -ms MSTAR, --mstar MSTAR
+                        stellar mass
+  -tm TMID, --tmid TMID
+                        mid transit prior
+  -m1 MASS1, --mass1 MASS1
+                        planet 1 mass (earth)
+  -p1 PERIOD1, --period1 PERIOD1
+                        planet 1 period (earth)
+```
 
 ## Example commands from start to finish
 ```
 python generate_simulations.py --file ttv31_6omega.pkl --samples 10000 -o 6 -p 31
 python generate_dataset.py -i ttv31_6omega.pkl -o Xy30_6.pkl
 python encoder_single.py --train Xy30_6.pkl --test Xy30_6.pkl --epochs 100
-python estimate_prior.py --train Xy30_6.pkl
+python estimate_prior.py --train Xy30_6.pkl -i sim_data.txt -ms 1 -m1 32 -p1 3.288
 ```
 
 ## Things to improve
@@ -122,3 +141,4 @@ python estimate_prior.py --train Xy30_6.pkl
 - hyper parameter optimization
 - Create a decoder network/VAE
 - Fourier analysis of O-C signal 
+- Predict unstable orbits

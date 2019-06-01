@@ -110,6 +110,6 @@ The residuals of a linear ephemeris are plotted and then compared against a non-
 - add `nbody/` to your `PYTHONPATH`
 
 ## Citation 
-This work has been submitted for publication in Nature Astronomy and is currently under review. A preprint is available [here](https://www.overleaf.com/read/mfqvfxjbfrwh) and comments from the community are welcome. 
+This work has been submitted for publication. A preprint is available [here](https://www.overleaf.com/read/mfqvfxjbfrwh) and comments from the community are welcome. 
 
 If you use any of these algorithms in your work please include Kyle A. Pearson as a coauthor. Current institution: Lunar and Planetary Laboratory, University of Arizona, 1629 East University Boulevard, Tucson, AZ, 85721, USA

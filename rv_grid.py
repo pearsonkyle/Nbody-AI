@@ -35,25 +35,32 @@ if __name__ == "__main__":
             #amin = objects[2]['m']/ ( objects[0]['m']**(2./3) * (objects[2]['P']**(2./3) - objects[1]['P']**(2./3))**2 )
 
 
+
     plt.imshow(rvs, cmap='gist_rainbow', origin='lower',
-                extent=[ min(masses)*msun/mearth, max(masses)*msun/mearth, min(periods)/objects[1]['P'],max(periods)/objects[1]['P']],
-                aspect=20, vmin=0, vmax=6)
+            extent=[ min(masses)*msun/mearth, max(masses)*msun/mearth, min(periods)/objects[1]['P'],max(periods)/objects[1]['P']],
+            aspect=20, vmin=0, vmax=6)
+
+    cbar = plt.colorbar()
+
+    try:
+
+        plt.imshow(mask, cmap='binary_r', alpha=0.7,origin='lower',
+                    extent=[ min(masses)*msun/mearth, max(masses)*msun/mearth, min(periods)/objects[1]['P'],max(periods)/objects[1]['P']],
+                    aspect=20, label='TTV > 2 min' )
+    except: 
+        pass
+
+    
+    plt.text(15,2, "TTV > 2 min",color='white')
+    plt.text(2.5,1.7, "RV necessary to detect planet \n (TTV < 2 min)",color='black')
+    plt.text(7.5,1.27, "TTV capable of planet detection\n(TTV > 2 min)",color='white')
 
     plt.ylabel(r'Period Ratio [P$_{outer}$/P$_{inner}$]')
     plt.xlabel('Mass of Outer Planet [Earth]')
     #plt.title('M* = {:.2f} [Sun], P1 = {:.2f} [day]'.format(objects[0]['m'], objects[1]['P']) )
     plt.title("RV Semi-amplitude for an Outer Planet")
     plt.ylim([1.25,2.2])
-    cbar = plt.colorbar()
     cbar.set_label('RV Semi-amplitude [m/s]', rotation=270, labelpad=10)
+    #plt.show()
     plt.savefig('rv_grid.pdf',bbox_inches='tight')
     plt.close()
-
-
-    '''
-    __1___
-    |   /
-   10  /
-    | /
-    |/
-    '''
