@@ -36,8 +36,8 @@ if __name__ == "__main__":
     help_ = "planet 2 eccentricity prior (radian)"
     parser.add_argument("-e2", "--eccentricity2", help=help_, default=0, type=float)
 
-    help_ = "machine learning prior estimate"
-    parser.add_argument("-ml", "--ai", help=help_, default=False, type=bool)
+    #help_ = "machine learning prior estimate"
+    #parser.add_argument("-ml", "--ai", help=help_, default=False, type=bool)
 
     # TODO add inclination argument? 
 
@@ -48,9 +48,11 @@ if __name__ == "__main__":
     # estimate priors with a least-sq linear fit
     ttv,m,b = TTV(data[:,0], data[:,1])
 
+    bmask = (data[:,0]==2) |(data[:,0]==1) | (data[:,0]==14) | (data[:,0]==30) | (data[:,0]==21) 
+
     # perform nested sampling linear fit to transit data    
     lstats, lposteriors = lfit( 
-        data[:,0], data[:,1], data[:,2],
+        data[~bmask,0], data[~bmask,1], data[~bmask,2],
         bounds=[ 
             b-1./24, b+1./24,
             m-1./24, m+1./24, 
@@ -63,12 +65,12 @@ if __name__ == "__main__":
         {'m':args.mass2*mearth/msun, 'P':args.period2, 'e':args.eccentricity2, 'omega':args.omega2,  'inc':3.14159/2}
     ]
 
-    if args.ai: # TODO 
-        priors = ml_estimate(data[:,0], data[:,1])
-        for k in priors.keys():
-            objects[2][k] = priors[k]
-    else:
-        pass
+    # if args.ai: # TODO 
+    #     priors = ml_estimate(data[:,0], data[:,1])
+    #     for k in priors.keys():
+    #         objects[2][k] = priors[k]
+    # else:
+    #     pass
 
     # estimate priors    
     bounds = [
@@ -79,17 +81,17 @@ if __name__ == "__main__":
         }),
         
         OrderedDict({
-            'P':[ max(objects[1]['P']+1, objects[1]['P']*args.period2-2), 8.3  ],  # Period #2 (day), near 2-1 resonance 
-            'm':[ mearth/msun, objects[2]['m']+50*mearth/msun], # Mass #2 (msun)
-            'e':[ max(objects[2]['e']-0.02,0), objects[2]['e']+0.05 ],
-            'omega':[1.5, 5 ],
+            'P':[ 1,1.55 ],  # Period #2 (day), near 2-1 resonance 
+            'm':[ 5*mearth/msun, objects[2]['m']+50*mearth/msun], # Mass #2 (msun)
+            'e':[ 0, 0.1 ],
+            'omega':[2.4,4.5],
             #'omega':[ objects[2]['omega']-1,  objects[2]['omega']+1 ],
         }),
     ]
     print(bounds)
 
     newobj, nlposteriors, nlstats = nlfit( 
-        data[:,0], data[:,1], data[:,2], 
+        data[~bmask,0], data[~bmask,1], data[~bmask,2], 
         objects, bounds,
         myloss='linear',
     )
@@ -116,10 +118,9 @@ if __name__ == "__main__":
     plt.savefig('ttv_model.pdf',bbox_inches='tight')
     plt.close()
 
-
     # Posterior #######################################################################################
     nlposteriors[:,5] = nlposteriors[:,5]*msun/mearth
-    nlstats['marginals'] = get_stats(nlposteriors)
+    nlstats['marginals'] = get_stats(nlposteriors,25)
 
     labels = [
         'Mid-transit [day]',
@@ -130,7 +131,7 @@ if __name__ == "__main__":
         'Omega 2 [radian]',
     ]
 
-    ranges = [ (nlstats['marginals'][i]['5sigma'][0], nlstats['marginals'][i]['5sigma'][1]) for i in range(len(nlstats['marginals'])) ]
+    ranges = [ (nlstats['marginals'][i]['3sigma'][0], nlstats['marginals'][i]['3sigma'][1]) for i in range(len(nlstats['marginals'])) ]
     
     inf = cm.get_cmap('nipy_spectral', 256)
     newcmp = ListedColormap( inf(np.linspace(0,0.75,256))  )
@@ -141,27 +142,70 @@ if __name__ == "__main__":
         labels= labels,
         bins=int(np.sqrt(nlposteriors.shape[0])), 
         range= ranges,
+        #quantiles=(0.16, 0.84),
         plot_contours=False,
         plot_density=False,
-        data_kwargs={'c':nlposteriors[mask,1],'vmin':np.percentile(nlposteriors[:,1],1),'vmax':np.percentile(nlposteriors[:,1],50),'cmap':newcmp },
+        data_kwargs={
+            'c':nlposteriors[mask,1],
+            'vmin':np.percentile(nlposteriors[:,1],1),
+            'vmax':np.percentile(nlposteriors[:,1],50),
+            'cmap':newcmp,
+        },
+        label_kwargs={
+            'labelpad':15,
+        },
+        hist_kwargs={
+            'color':'blue'
+        }
     )
 
     plt.savefig('ttv_posterior.pdf',bbox_inches='tight')
     plt.close()
 
-    # TODO save posteriors to text file 
-    # TODO add input args to name saved files
+    nlstats['marginals'] = get_stats(nlposteriors,50)
+    print('NL. Evidence & {:.1f} \\\\'.format(nlstats['nested sampling global log-evidence']) )
+    for i in range(len(labels)):
+        print('{} & {} $\pm$ {} \\\\'.format( labels[i], nlstats['marginals'][i]['median'], nlstats['marginals'][i]['sigma'] ) )
+
+    np.savetxt('nlfit_posteriors.txt',nlposteriors)
+    with open('nlfit_stats.json', 'w') as fp:
+        json.dump(nlstats, fp)
+
+    # run nl_fit.py -i tic183985250.txt -m1 22  -m2 45 -ms 1 -p2 2
+
+    '''
+    # L. Evidence & 'nested importance sampling global log-evidence': -21.007
+    Mid-transit [day] 
+        In [34]: lstats['marginals'][0]['median']
+        Out[34]: 1354.2151412742587
+        In [35]: lstats['marginals'][0]['sigma']
+        Out[35]: 0.00036177587105612474
+        In [36]: lstats['marginals'][1]['median']
+        Out[36]: 0.7920460094094526
+        In [37]: lstats['marginals'][1]['sigma']
+        Out[37]: 1.851038551931028e-05
 
 
-    # TODO: test all command line arguments
+    NL. Evidence & -18.0 \\
+    Mid-transit [day] & 1354.2154415218338 $\pm$ 0.00046905372471428564 \\
+    Period 1 [day] & 0.792060543029102 $\pm$ 3.3883367769049766e-05 \\
+    Period 2 [day] & 1.918166823093039 $\pm$ 0.23827370123331615 \\
+    Mass 2 [Earth] & 75.44040963917425 $\pm$ 34.735541847698244 \\
+    Eccentricity 2 & 0.08456609098998988 $\pm$ 0.03506072571270087 \\
+    Omega 2 [radian] & 3.5306967937281915 $\pm$ 1.1229690723791252 \\
+    '''    
+
     # run nl_fit.py -i sim_data.txt -p1 3.2888 -tm 0.82 -m1 79.45 -m2 31 -p2 7
     # 3.46 hours 
 
     # WASP-18 b 
-    # run nl_fit.py -i wasp18.txt -m1 3314.82 -m2 69.8 -p2 2 -ms 1.22
+    # run nested_wasp18.py -i wasp18.txt -m1 3314.82 -m2 69.8 -p2 2 -ms 1.22
 
     # WASP-126 
-    # run nl_fit.py -i wasp126.txt -m1 90.26 -m2 66 -ms 1.12 -p2 2
+    # run nested_wasp126.py -i wasp126.txt -m1 90.26 -m2 66 -ms 1.12 -p2 2
 
     # toi 193
-    # run nl_fit.py -i tic183985250.txt -m1 
+    # run nl_fit.py -i tic183985250.txt -m1 22  -m2 45 -ms 1 -p2 2
+    # overplot the two modes on the posteriors
+    # create the two plots in the ttv model 
+    # see which of the two models are stable - run model for 100 epochs

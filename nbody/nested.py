@@ -85,7 +85,15 @@ def nlfit( xx,yy,yerr, objects, bounds, myloss='linear'):
     def myloglike(cube, ndim, n_params):
         epochs,ttv,tt = model_sim(cube)
         ttv_data = yy - (cube[1]*xx+cube[0])
-        return -np.sum( loss[myloss]( ((ttv_data-ttv[xx.astype(int)])/yerr)**2 ) )*0.5
+        try:
+            loglike = -np.sum( loss[myloss]( ((ttv_data-ttv[xx.astype(int)])/yerr)**2 ) )*0.5
+            return loglike
+        except:
+            loglike = 0
+            for i in range(len(ttv)):
+                loglike += loss[myloss]( ((ttv_data[i]-ttv[i])/yerr[i])**2 )
+            return -10*np.sum( loglike) # penalize for unstable orbits
+
         # period usually changes ~30 seconds to a minute after N-body integrations
         # therefore the method below subtracts the wrong period from the data
         #ttvm = tt[xx.astype(int)] - (cube[1]*xx+cube[0])
@@ -106,12 +114,12 @@ def nlfit( xx,yy,yerr, objects, bounds, myloss='linear'):
 
     # map posteriors back to object dict
     obj = copy.deepcopy(objects)
-    mask = posteriors[:,1] < np.percentile(posteriors[:,1],25)
+    mask = posteriors[:,1] < np.percentile(posteriors[:,1],50)
 
     c = 1
     for i in range(1,len(bounds)):
         for k in bounds[i].keys():                
-            obj[i][k] = np.mean(posteriors[mask,2+c])
+            obj[i][k] = np.median(posteriors[mask,2+c])
             c+=1
 
     return obj, posteriors, stats
@@ -171,8 +179,8 @@ def nbody_limits( newobj, nlstats, ttv):
     lower = np.copy( ttv )
     
     obj = copy.deepcopy(newobj)
-    obj[2]['m'] = nlstats['marginals'][3]['3sigma'][0]
-    obj[2]['omega'] = nlstats['marginals'][5]['3sigma'][0]
+    obj[2]['m'] = nlstats['marginals'][3]['median']-3*nlstats['marginals'][3]['sigma']
+    obj[2]['omega'] = nlstats['marginals'][5]['median']-3*nlstats['marginals'][5]['sigma']
     sim_data = generate(obj, newobj[1]['P']* (len(ttv)+1), int( (len(ttv)+1)*newobj[1]['P']*24) )
     ttv_data = analyze(sim_data)
     for i in range( len(ttv_data['planets'][0]['ttv']) ):
@@ -183,7 +191,7 @@ def nbody_limits( newobj, nlstats, ttv):
             pass
 
     obj = copy.deepcopy(newobj)
-    obj[2]['m'] = nlstats['marginals'][3]['3sigma'][0]
+    obj[2]['m'] = nlstats['marginals'][3]['median']-3*nlstats['marginals'][3]['sigma']
     sim_data = generate(obj, newobj[1]['P']* (len(ttv)+1), int( (len(ttv)+1)*newobj[1]['P']*24) )
     ttv_data = analyze(sim_data)
     for i in range( len(ttv_data['planets'][0]['ttv']) ):
@@ -194,7 +202,7 @@ def nbody_limits( newobj, nlstats, ttv):
             pass
 
     obj = copy.deepcopy(newobj)
-    obj[2]['m'] = nlstats['marginals'][3]['3sigma'][1]
+    obj[2]['m'] = nlstats['marginals'][3]['median']+3*nlstats['marginals'][3]['sigma']
     sim_data = generate(obj, newobj[1]['P']* (len(ttv)+1), int( (len(ttv)+1)*newobj[1]['P']*24) )
     ttv_data = analyze(sim_data)
     for i in range( len(ttv_data['planets'][0]['ttv']) ):
@@ -205,8 +213,8 @@ def nbody_limits( newobj, nlstats, ttv):
             pass
 
     obj = copy.deepcopy(newobj)
-    obj[2]['m'] = nlstats['marginals'][3]['3sigma'][0]
-    obj[2]['omega'] = nlstats['marginals'][5]['3sigma'][1]
+    obj[2]['m'] = nlstats['marginals'][3]['median']-3*nlstats['marginals'][3]['sigma']
+    obj[2]['omega'] = nlstats['marginals'][5]['median']+3*nlstats['marginals'][5]['sigma']
     sim_data = generate(obj, newobj[1]['P']* (len(ttv)+1), int( (len(ttv)+1)*newobj[1]['P']*24) )
     ttv_data = analyze(sim_data)
     for i in range( len(ttv_data['planets'][0]['ttv']) ):
@@ -217,8 +225,8 @@ def nbody_limits( newobj, nlstats, ttv):
             pass
 
     obj = copy.deepcopy(newobj)
-    obj[2]['m'] = nlstats['marginals'][3]['3sigma'][1]
-    obj[2]['omega'] = nlstats['marginals'][5]['3sigma'][0]
+    obj[2]['m'] = nlstats['marginals'][3]['median']+3*nlstats['marginals'][3]['sigma']
+    obj[2]['omega'] = nlstats['marginals'][5]['median']-3*nlstats['marginals'][5]['sigma']
     sim_data = generate(obj, newobj[1]['P']* (len(ttv)+1), int( (len(ttv)+1)*newobj[1]['P']*24) )
     ttv_data = analyze(sim_data)
     for i in range( len(ttv_data['planets'][0]['ttv']) ):
@@ -229,8 +237,8 @@ def nbody_limits( newobj, nlstats, ttv):
             pass
 
     obj = copy.deepcopy(newobj)
-    obj[2]['m'] = nlstats['marginals'][3]['3sigma'][1]
-    obj[2]['omega'] = nlstats['marginals'][5]['3sigma'][1]
+    obj[2]['m'] = nlstats['marginals'][3]['median']+3*nlstats['marginals'][3]['sigma']
+    obj[2]['omega'] = nlstats['marginals'][5]['median']+3*nlstats['marginals'][5]['sigma']
     sim_data = generate(obj, newobj[1]['P']* (len(ttv)+1), int( (len(ttv)+1)*newobj[1]['P']*24) )
     ttv_data = analyze(sim_data)
     for i in range( len(ttv_data['planets'][0]['ttv']) ):

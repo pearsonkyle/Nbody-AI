@@ -44,13 +44,13 @@ def randomize():
     objects = [
         # stellar parameters
         {
-            'm': np.random.uniform(0.4,1.5), # star mass [msun]
+            'm': np.random.uniform(0.85,1.15), # star mass [msun]
         },
 
         # planet 1
         {
-            'm': np.random.uniform(0.66*mearth/msun, 100*mearth/msun),
-            'P': np.random.uniform(1,10),
+            'm': np.random.uniform(0.66*mearth/msun, 150*mearth/msun),
+            'P': np.random.uniform(0.8,10),
             # inc - conditional based on transiting inclination limit 
         },
 
@@ -59,8 +59,8 @@ def randomize():
             'm': np.random.uniform(0.25,3),  # ratio with planet 1   
             # P - conditional, must be beyond hill radius of planet 1
             # inc - conditional based on transiting inclination limit
-            'omega': np.random.uniform(0,np.pi),
-            'e': np.abs(np.random.normal(0,0.02))
+            'omega': np.random.uniform(0,2*np.pi),
+            'e': np.abs(np.random.normal(0,0.1))
         }
     ]
 
@@ -76,7 +76,7 @@ def randomize():
     while a1+hr1 > a2-hr2:
 
         # check if hill spheres interact
-        objects[2]['P'] = objects[1]['P']*np.random.uniform(1.25,4)
+        objects[2]['P'] = objects[1]['P']*np.random.uniform(1.25,2.5)
         a2 = sa(objects[0]['m'], objects[2]['P'] )
         hr2 = hill_sphere(objects,i=2)
 

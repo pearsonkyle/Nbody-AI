@@ -10,21 +10,39 @@ from sklearn import preprocessing
 from sklearn.model_selection import train_test_split
 
 import tensorflow as tf
-from nbody.ai import build_encoder 
+from nbody.ai import build_encoder, build_cnn_encoder
 
-def load_data(fname='Xy30_6.pkl', npts=30, noise=False):
+def load_data(fname='Xy30_6.pkl', npts=30, noise=None):
 
     X,z = pickle.load(open(fname,'rb'))
 
     y = X[:,3:]   # P2 [day], M2 [earth], omega2 [rad], ecc2
     X = X[:,:3]   # M* [sun], P1 [day], M1 [earth]
     z = np.array( [z[i][:npts] for i in range(len(z))] ) # O-C data
-    
-    # noise up data
-    if noise:
-        zn = z + np.random.normal(0,0.1*np.abs(z),z.shape)
-        return X,y,zn
 
+    # only get data between 1-10 minute TTV 
+    mask = (np.max(np.abs(z),1)>1) & (np.max(np.abs(z),1)<10)
+    mask = mask & (X[:,0] > 0.85) & (X[:,0] < 1.15) & (y[:,1] < 100) # solar stars + low mass companion
+
+    X = X[mask]
+    y = y[mask]
+    z = z[mask]
+
+    # noise up data since these are measurements after all
+    if noise:
+        Xn = np.copy(X)
+        yn = np.copy(y) 
+        zn = np.copy(z)
+
+        for i in range(noise):
+            # biased variation of points close to 0 O-C
+            zr = z + np.random.normal(0,0.1*np.abs(z),z.shape) 
+
+            Xn = np.concatenate( (Xn,X) )
+            yn = np.concatenate( (yn,y) )
+            zn = np.concatenate( (zn,zr) )
+
+        return Xn,yn,zn
     else:
         return X, y, z
 
@@ -43,22 +61,22 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # train
-    X,y,z = load_data(args.train, noise=True)
+    X,y,z = load_data(args.train, noise=10)
     Xs = X/X.max(0) # M* [sun], P1 [day], M1 [earth]
-    zs = z/z.max(0) # O-C data 
+    zs = z/z.max(0) # O-C data [min]
     ys = y/y.max(0) # P2 [day], M2 [earth], omega2 [rad], ecc2
 
     # test
-    Xt,yt,zt = load_data(args.test, noise=True)
-    Xts = X/X.max(0)
-    zts = z/z.max(0)
-    yts = y/y.max(0)
+    Xt,yt,zt = load_data(args.test, noise=3)
+    Xts = Xt/X.max(0)
+    zts = zt/z.max(0)
+    yts = yt/y.max(0)
 
-    encoder = build_encoder(
+    encoder = build_cnn_encoder(
         input_dims=[X.shape[1],z.shape[1]], 
-        layer_sizes=[ [8,8], [64,64] ],
-        combined_layers = [128,128,32], 
-        dropout=0.3,  
+        layer_sizes=[ [8,8,8], [16,32,32] ],
+        combined_layers = [512,128,32], 
+        dropout=0.5,  
         output_dim=y.shape[1]
     )
 
@@ -73,6 +91,7 @@ if __name__ == '__main__':
     encoder.compile(
         optimizer=tf.keras.optimizers.Adam(learning_rate=1e-3), 
         loss=tf.keras.losses.MeanSquaredError(),
+        #loss=tf.keras.losses.MeanAbsolutePercentageError(),
         metrics=['accuracy']
     )
 
@@ -86,26 +105,26 @@ if __name__ == '__main__':
 
     encoder.save_weights(args.weights)
 
+    f,ax = plt.subplots(1)
     # Plot training & validation accuracy values
-    plt.plot(history.history['accuracy'])
-    plt.plot(history.history['val_accuracy'])
-    plt.title('Model accuracy')
-    plt.ylabel('Accuracy')
-    plt.xlabel('Epoch')
-    plt.legend(['Train', 'Test'], loc='upper left')
-    plt.show()
+    #ax[0].plot(history.history['accuracy'])
+    #ax[0].plot(history.history['val_accuracy'])
+    #ax[0].set_ylabel('Accuracy')
+    #x[0].set_xlabel('Training Epoch')
+    #ax[0].legend(['Train', 'Test'], loc='upper left')
 
     # Plot training & validation loss values
-    plt.plot(history.history['loss'])
-    plt.plot(history.history['val_loss'])
-    plt.title('Model loss')
-    plt.ylabel('Loss')
-    plt.xlabel('Epoch')
-    plt.legend(['Train', 'Test'], loc='upper left')
-    plt.show()
+    ax.plot(history.history['loss'])
+    ax.plot(history.history['val_loss'])
+    ax.set_ylabel('Loss')
+    ax.set_xlabel('Training Epoch')
+    ax.legend(['Train', 'Test'], loc='upper left')
+    #plt.show()
+    plt.savefig('nn_training.pdf',bbox_inches='tight')
+    plt.close()
+
 
     ypred = encoder.predict([Xts,zts])
-
     ypred *= y.max(0)
     res = yt-ypred
 
@@ -122,30 +141,38 @@ if __name__ == '__main__':
     ax[1,1].hist( res[:,3], bins=100, label=r"$\sigma$={:.2f}".format(np.std(res[:,3])))
     ax[1,1].set_xlabel('eccentricity Error')
     ax[1,1].legend(loc='best')
-    plt.show()
+    plt.savefig('nn_histogram.pdf',bbox_inches='tight')
+    plt.close()
 
-    def add_colorbar(f,ax,im):
+    def add_colorbar(f,ax,im,label):
         divider = make_axes_locatable(ax)
         cax = divider.append_axes('right', size='5%', pad=0.05)
-        f.colorbar(im, cax=cax, orientation='vertical')
+        cbar = f.colorbar(im, cax=cax, orientation='vertical')
+        cbar.set_label(label, rotation=270, labelpad=10)
 
+    # create mask for all stars between 0.85-1.15 Msun
     f,ax = plt.subplots(2,2)
     im = ax[0,0].scatter(yt[:,1],yt[:,0]/Xt[:,1],c=np.abs(res[:,0]),s=2, vmin=0, vmax=3*np.abs(res[:,0]).std() )
-    ax[0,0].set_xlabel('Period Error (day)')
-    add_colorbar(f,ax[0,0],im)
+    add_colorbar(f,ax[0,0],im,'Period Error [day]')
+    ax[0,0].set_ylabel(r'Period Ratio (P$_{outer}$/P$_{inner}$)')
 
     im = ax[1,0].scatter(yt[:,1],yt[:,0]/Xt[:,1],c=np.abs(res[:,1]),s=2, vmin=0, vmax=3*np.abs(res[:,1]).std() ) 
-    ax[1,0].set_xlabel('Mass Error (mearth)')
-    add_colorbar(f,ax[1,0],im)
+    add_colorbar(f,ax[1,0],im,'Mass Error [Earth]')
+    ax[1,0].set_ylabel(r'Period Ratio (P$_{outer}$/P$_{inner}$)')
+    ax[1,0].set_xlabel('Mass of Outer Planet [Earth]')
 
     im = ax[0,1].scatter(yt[:,1],yt[:,0]/Xt[:,1],c=np.abs(res[:,2]),s=2, vmin=0, vmax=3*np.abs(res[:,2]).std() ) 
-    ax[0,1].set_xlabel('omega Error')
-    add_colorbar(f,ax[0,1],im)
+    add_colorbar(f,ax[0,1],im,'Arg of Periastron Error')
 
     im = ax[1,1].scatter(yt[:,1],yt[:,0]/Xt[:,1],c=np.abs(res[:,3]),s=2, vmin=0, vmax=3*np.abs(res[:,3]).std() ) 
-    ax[1,1].set_xlabel('eccentricity Error')
-    add_colorbar(f,ax[1,1],im)
+    add_colorbar(f,ax[1,1],im,'Eccentricity Error')
+    ax[1,1].set_xlabel('Mass of Outer Planet [Earth]')
 
-    plt.show()
+    plt.savefig('nn_error.pdf',bbox_inches='tight')
+    plt.close()
 
     tf.keras.utils.plot_model(encoder, to_file='encoder.png', show_shapes=True, show_layer_names=False)
+
+    # TODO create model training plot
+    # create model error plot
+    # create mosaic of prior estimates 

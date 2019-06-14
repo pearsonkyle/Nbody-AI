@@ -18,7 +18,6 @@ if __name__ == "__main__":
     #In [10]: m['1d'].predict( np.array([[9.06573*rearth/rjup]]) )
     #Out[10]: (array([[-0.36545262]]), array([[0.17203385]]))
 
-
     # create REBOUND simulation
     # year long integrations, timestep = 1 hour
     #sim_data = generate(objects, 180, 180*24)
