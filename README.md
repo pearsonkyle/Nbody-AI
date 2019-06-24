@@ -113,3 +113,9 @@ The residuals of a linear ephemeris are plotted and then compared against a non-
 This work has been submitted for publication. A preprint is available [here](https://www.overleaf.com/read/mfqvfxjbfrwh) and comments from the community are welcome. 
 
 If you use any of these algorithms in your work please include Kyle A. Pearson as a coauthor. Current institution: Lunar and Planetary Laboratory, University of Arizona, 1629 East University Boulevard, Tucson, AZ, 85721, USA
+
+
+## Awards 
+[This project](https://devpost.com/software/nbody-ai-retrieval) was submitted to the [Powered by TF2.0 Challenge](https://tensorflow.devpost.com/) and will be featured at the TensorFlow World conference in 2019. 
+
+![](figures/TF2_challenge.png)

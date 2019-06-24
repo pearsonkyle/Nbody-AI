@@ -1,7 +1,7 @@
 from collections import OrderedDict
 import argparse
 import pprint
-import copy 
+import json 
 
 import corner 
 import numpy as np
@@ -83,7 +83,7 @@ if __name__ == "__main__":
         OrderedDict({
             'P':[ 1,1.55 ],  # Period #2 (day), near 2-1 resonance 
             'm':[ 5*mearth/msun, objects[2]['m']+50*mearth/msun], # Mass #2 (msun)
-            'e':[ 0, 0.1 ],
+            'e':[ 0.04, 0.1 ],
             'omega':[2.4,4.5],
             #'omega':[ objects[2]['omega']-1,  objects[2]['omega']+1 ],
         }),
@@ -136,7 +136,7 @@ if __name__ == "__main__":
     inf = cm.get_cmap('nipy_spectral', 256)
     newcmp = ListedColormap( inf(np.linspace(0,0.75,256))  )
 
-    mask = (nlposteriors[:,1] < np.percentile(nlposteriors[:,1],50))
+    mask = (nlposteriors[:,1] < np.percentile(nlposteriors[:,1],75))
 
     f = corner.corner(nlposteriors[mask,2:], 
         labels= labels,
@@ -155,7 +155,7 @@ if __name__ == "__main__":
             'labelpad':15,
         },
         hist_kwargs={
-            'color':'blue'
+            'color':'black'
         }
     )
 
