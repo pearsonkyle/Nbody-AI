@@ -6,9 +6,7 @@ A python 3 package for generating N-body simulations, computing transit timing v
 ## Background
 Transiting exoplanets in multiplanet systems exhibit non-Keplerian orbits as a result of the graviational influence from companions which can cause the times and durations of transits to vary (TTV/TDV). The amplitude and periodicity of transit time variations are characteristic of the perturbing planet's mass and orbit. Astronomers back in the day were able to measure orbital perturbations of Uranus in order to indirectly discover Neptune before it was seen through a telescope. A similar analysis can be used to find planets outside of our solar system.
 
-![](figures/exoplanet_ttv.gif)
-
-Video credit: [NASA](https://www.youtube.com/watch?v=rqQ1xKsNIQE)
+![](figures/orbits_game.gif)
 
 ## Generate an N-body simulation 
 The n-body simulations in this research make use of the [REBOUND](https://rebound.readthedocs.io) code. To generate a random simulation follow the code below: 
