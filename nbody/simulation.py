@@ -213,6 +213,8 @@ def analyze(m, ttvfast=False):
 
     return data
 
+# TODO create animation 
+
 def report(data, savefile=None):
 
     # set up simulation summary report 
