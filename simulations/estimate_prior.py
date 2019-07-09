@@ -8,22 +8,8 @@ import tensorflow as tf
 from nbody.ai import build_encoder 
 from nbody.simulation import generate, analyze, report, TTV
 from nbody.tools import mjup,msun,mearth
-
-def load_data(fname='Xy30_6.pkl', npts=30, noise=False):
-
-    X,z = pickle.load(open(fname,'rb'))
-
-    y = X[:,3:]   # P2 [day], M2 [earth], omega2 [rad], ecc2
-    X = X[:,:3]   # M* [sun], P1 [day], M1 [earth]
-    z = np.array( [z[i][:npts] for i in range(len(z))] ) # O-C data
-    
-    # noise up data
-    if noise:
-        zn = z + np.random.normal(0,0.1*np.abs(z),z.shape)
-        return X,y,zn
-
-    else:
-        return X, y, z
+ 
+from encoder_single import load_data
 
 if __name__ == '__main__':
 
@@ -35,16 +21,16 @@ if __name__ == '__main__':
     help_ = "stellar mass"
     parser.add_argument("-ms", "--mstar", help=help_, default=1, type=float)
     help_ = "planet 1 mass (earth)"
-    parser.add_argument("-m1", "--mass1", help=help_, default=79.45, type=float)
+    parser.add_argument("-m1", "--mass1", help=help_, default=80, type=float)
     help_ = "planet 1 period (earth)"
     parser.add_argument("-p1", "--period1", help=help_, default=3.2888, type=float)
     args = parser.parse_args()
     parser = argparse.ArgumentParser()
 
     # train
-    X,y,z = load_data(args.train, noise=True)
+    X,y,z = load_data(args.train, noise=10)
     Xs = X/X.max(0) # M* [sun], P1 [day], M1 [earth]
-    zs = z/z.max(0) # O-C data 
+    zs = z/z.max(0) # O-C data [min]
     ys = y/y.max(0) # P2 [day], M2 [earth], omega2 [rad], ecc2
 
     data = np.loadtxt(args.input)
@@ -59,7 +45,7 @@ if __name__ == '__main__':
         input_dims=[X.shape[1],z.shape[1]], 
         layer_sizes=[ [8,8], [64,64] ],
         combined_layers = [128,128,32], 
-        dropout=0.3,  
+        dropout=0.3,
         output_dim=y.shape[1]
     )
 
@@ -77,6 +63,12 @@ if __name__ == '__main__':
         metrics=['accuracy']
     )
 
+    # quantify error in training data
+    ypred = encoder.predict([Xs,zs])
+    ypred *= y.max(0)
+    res = yt-ypred
+
+
     ypred = encoder.predict([xf,zf])
     ypred *= y.max(0)
 
@@ -91,6 +83,24 @@ if __name__ == '__main__':
     sim_data = generate(pred, max(data[:,1]), int(max(data[:,1])*24) ) 
     ttv_pred = analyze(sim_data)
 
+
+    ml_error = lambda x: x # TODO 
+
+    nlstats = {
+        'marginals':[
+            {'median':0,'sigma':0}, # Tmid
+            {'median':pred[1]['P'], 'sigma':0}, # P1
+            {'median':pred[2]['P'], 'sigma': ml_error(pred[1]['P']) },       # P2
+            {'median':pred[2]['m'], 'sigma': ml_error(pred[2]['m'])*mearth/msun }, # M2
+            {'median':pred[2]['e'], 'sigma': ml_error(pred[2]['e']) },       # ecc2
+            {'median':pred[2]['omega'],'sigma':ml_error(pred[2]['omega']) }  # w2
+        ]
+    }
+
+    upper, lower = nbody_limits( pred, nlstatus, n=2)
+
+
+
     plt.errorbar(
         data[:,0],
         ttv*24*60,
@@ -98,78 +108,6 @@ if __name__ == '__main__':
         ls='none',marker='o', label='Data', color='black'
     )
     plt.plot(ttv_pred['planets'][0]['ttv']*24*60,'g--', label='NN Estimate')
-
-    plt.show()
-
-    # TODO fix this 
-
-    '''
-    pred = [
-        {'m':args.mstar},
-        {'m':args.mass1, 'P':args.period1, 'inc':3.14159/2, 'e':0, 'omega':0  }, 
-        {'m':(ypred[i,1]+19)*mearth/msun, 'P':ypred[i,0], 'inc':3.14159/2, 'e':ypred[i,3],  'omega':ypred[i,2]-0.5  }, 
-    ]
-    sim_data = generate(pred, X[i,1]*20, int(X[i,1]*20*24) )
-    ttv_upper1 = analyze(sim_data)
-
-    pred = [
-        {'m':args.mstar},
-        {'m':args.mass1, 'P':args.period1, 'inc':3.14159/2, 'e':0, 'omega':0  }, 
-        {'m':(ypred[i,1]+19)*mearth/msun, 'P':ypred[i,0], 'inc':3.14159/2, 'e':ypred[i,3],  'omega':ypred[i,2]+0.5  }, 
-    ]
-    sim_data = generate(pred, X[i,1]*20, int(X[i,1]*20*24) )
-    ttv_upper2 = analyze(sim_data)
-
-    pred = [
-        {'m':args.mstar},
-        {'m':args.mass1, 'P':args.period1, 'inc':3.14159/2, 'e':0, 'omega':0  }, 
-        {'m':(ypred[i,1]+19)*mearth/msun, 'P':ypred[i,0]+1, 'inc':3.14159/2, 'e':ypred[i,3],  'omega':ypred[i,2]-0.5  }, 
-    ]
-    sim_data = generate(pred, X[i,1]*20, int(X[i,1]*20*24) )
-    ttv_upper11 = analyze(sim_data)
-
-    pred = [
-        {'m':args.mstar},
-        {'m':args.mass1, 'P':args.period1, 'inc':3.14159/2, 'e':0, 'omega':0  }, 
-        {'m':(ypred[i,1]+19)*mearth/msun, 'P':ypred[i,0]-1, 'inc':3.14159/2, 'e':ypred[i,3],  'omega':ypred[i,2]+0.5  }, 
-    ]
-    sim_data = generate(pred, X[i,1]*20, int(X[i,1]*20*24) )
-    ttv_upper22 = analyze(sim_data)
-
-    pred = [
-        {'m':args.mstar},
-        {'m':args.mass1, 'P':args.period1, 'inc':3.14159/2, 'e':0, 'omega':0  }, 
-        {'m':(ypred[i,1]-9)*mearth/msun, 'P':ypred[i,0], 'inc':3.14159/2, 'e':ypred[i,3],  'omega':ypred[i,2]-0.5  }, 
-    ]
-    sim_data = generate(pred, X[i,1]*20, int(X[i,1]*20*24) )
-    ttv_lower1 = analyze(sim_data)
-
-    pred = [
-        {'m':args.mstar},
-        {'m':args.mass1, 'P':args.period1, 'inc':3.14159/2, 'e':0, 'omega':0  }, 
-        {'m':(ypred[i,1]-9)*mearth/msun, 'P':ypred[i,0], 'inc':3.14159/2, 'e':ypred[i,3],  'omega':ypred[i,2]+0.5  }, 
-    ]
-    sim_data = generate(pred, X[i,1]*20, int(X[i,1]*20*24) )
-    ttv_lower2 = analyze(sim_data)
-    '''
-
-    newmin, newmax = [], []
-    lists = [
-        ttv_pred, ttv_upper1, ttv_upper2, ttv_lower1, ttv_lower2,
-        ttv_upper11, ttv_upper22,
-    ]
-    for i in range(20):
-        values = [ lists[j]['planets'][0]['ttv'][i] for j in range(len(lists))]
-        newmin.append( np.min(values) )
-        newmax.append( np.max(values) )
-    newmin = np.array(newmin)
-    newmax = np.array(newmax)
-
-    # plot the results 
-    #report(ttv_true, savefile='report.png')
-
-    #plt.plot(ttv_true['planets'][0]['ttv']*24*60,'r-',label='Truth'.format(np.round(y[i],2)) )
-
 
     plt.fill_between(
         np.arange( ttv_true['planets'][0]['ttv'].shape[0] ),
@@ -181,8 +119,10 @@ if __name__ == '__main__':
     )
 
     plt.grid(True,ls='--')
-    # TODO create a table of estimates for each parameter 
+
     plt.ylabel('O-C Data [min]')
     plt.xlabel('Transit Epoch')
     plt.legend(loc='best')
     plt.show()
+
+    # run estimate_prior.py -tr Xy30_10.pkl -i sim_data.txt -ms 1.12 -p1 3.2888 -m1 80 

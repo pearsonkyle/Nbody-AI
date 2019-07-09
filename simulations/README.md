@@ -130,10 +130,10 @@ optional arguments:
 
 ## Example commands from start to finish
 ```
-python generate_simulations.py --file ttv31_6omega.pkl --samples 10000 -o 6 -p 31
-python generate_dataset.py -i ttv31_6omega.pkl -o Xy30_6.pkl
-python encoder_single.py --train Xy30_6.pkl --test Xy30_6.pkl --epochs 100
-python estimate_prior.py --train Xy30_6.pkl -i sim_data.txt -ms 1 -m1 32 -p1 3.288
+python generate_simulations.py -f Xy30_10.pkl -o 10 -s 10000
+python generate_simulations.py -f Xy30_6.pkl -o 6 -s 10000
+python encoder_single.py --train Xy30_10.pkl --test Xy30_6.pkl --epochs 100
+python estimate_prior.py --train Xy30_10.pkl -i sim_data.txt -ms 1 -m1 32 -p1 3.288
 ```
 
 ## Things to improve

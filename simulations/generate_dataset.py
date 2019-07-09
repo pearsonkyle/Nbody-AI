@@ -1,3 +1,4 @@
+# deprecated 
 import glob
 import pickle
 import argparse
@@ -14,7 +15,6 @@ if __name__ == "__main__":
     help_ = "Pickle file to write X,y data to"
     parser.add_argument("-o", "--output", help=help_)
     args = parser.parse_args()
-
 
     #data = pickle.load(open('ttv100e.pkl','rb'))
     data = pickle.load(open(args.input,'rb'))

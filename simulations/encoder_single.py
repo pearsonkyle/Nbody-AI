@@ -10,42 +10,7 @@ from sklearn import preprocessing
 from sklearn.model_selection import train_test_split
 
 import tensorflow as tf
-from nbody.ai import build_encoder, build_cnn_encoder
-
-def load_data(fname='Xy30_6.pkl', npts=30, noise=None):
-
-    X,z = pickle.load(open(fname,'rb'))
-
-    y = X[:,3:]   # P2 [day], M2 [earth], omega2 [rad], ecc2
-    X = X[:,:3]   # M* [sun], P1 [day], M1 [earth]
-    z = np.array( [z[i][:npts] for i in range(len(z))] ) # O-C data
-
-    # only get data between 1-10 minute TTV 
-    mask = (np.max(np.abs(z),1)>1) & (np.max(np.abs(z),1)<10)
-    mask = mask & (X[:,0] > 0.85) & (X[:,0] < 1.15) & (y[:,1] < 100) # solar stars + low mass companion
-
-    X = X[mask]
-    y = y[mask]
-    z = z[mask]
-
-    # noise up data since these are measurements after all
-    if noise:
-        Xn = np.copy(X)
-        yn = np.copy(y) 
-        zn = np.copy(z)
-
-        for i in range(noise):
-            # biased variation of points close to 0 O-C
-            zr = z + np.random.normal(0,0.1*np.abs(z),z.shape) 
-
-            Xn = np.concatenate( (Xn,X) )
-            yn = np.concatenate( (yn,y) )
-            zn = np.concatenate( (zn,zr) )
-
-        return Xn,yn,zn
-    else:
-        return X, y, z
-
+from nbody.ai import build_encoder, build_cnn_encoder, load_data
 
 if __name__ == '__main__':
     # TODO 
@@ -61,16 +26,19 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # train
-    X,y,z = load_data(args.train, noise=10)
+    X,y,z = load_data(args.train, noise=5)
+
     Xs = X/X.max(0) # M* [sun], P1 [day], M1 [earth]
     zs = z/z.max(0) # O-C data [min]
     ys = y/y.max(0) # P2 [day], M2 [earth], omega2 [rad], ecc2
 
     # test
-    Xt,yt,zt = load_data(args.test, noise=3)
+    Xt,yt,zt = load_data(args.test, noise=2)
     Xts = Xt/X.max(0)
     zts = zt/z.max(0)
     yts = yt/y.max(0)
+
+    dude()
 
     encoder = build_cnn_encoder(
         input_dims=[X.shape[1],z.shape[1]], 
@@ -168,11 +136,18 @@ if __name__ == '__main__':
     add_colorbar(f,ax[1,1],im,'Eccentricity Error')
     ax[1,1].set_xlabel('Mass of Outer Planet [Earth]')
 
-    plt.savefig('nn_error.pdf',bbox_inches='tight')
-    plt.close()
+    #plt.savefig('nn_error.pdf',bbox_inches='tight')
+    #plt.close()
+    plt.show()
 
     tf.keras.utils.plot_model(encoder, to_file='encoder.png', show_shapes=True, show_layer_names=False)
 
     # TODO create model training plot
     # create model error plot
     # create mosaic of prior estimates 
+
+
+    # redo abstract
+    # read through 
+    # machine learning figure errors 
+    # table values for toi 193 

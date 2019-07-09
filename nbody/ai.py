@@ -1,3 +1,5 @@
+import pickle 
+import numpy as np
 import tensorflow as tf
 from tensorflow.keras import layers
 
@@ -26,7 +28,6 @@ def build_encoder( input_dims=[3,20], layer_sizes=[ [32,32,32], [32,32,32] ],
     output = layers.Dense(output_dim, name='encoder_output',activation='sigmoid')(c)
 
     return tf.keras.Model(inputs=inputs, outputs=output, name='encoder')
-
 
 def build_cnn_encoder( input_dims=[3,20], layer_sizes=[ [16,16,16], [16,32,32] ],
                     combined_layers = [128,64,32], dropout=0.25,  output_dim=4 ):
@@ -64,6 +65,33 @@ def build_cnn_encoder( input_dims=[3,20], layer_sizes=[ [16,16,16], [16,32,32] ]
     output = layers.Dense(output_dim, name='encoder_output',activation='sigmoid')(c)
 
     return tf.keras.Model(inputs=inputs, outputs=output, name='encoder')
+
+
+def load_data(fname='Xy30_16.pkl', noise=None):
+
+    X,z = pickle.load(open(fname,'rb'))
+    X = np.array(X)
+    y = X[:,3:]   # P2 [day], M2 [earth], omega2 [rad], ecc2
+    X = X[:,:3]   # M* [sun], P1 [day], M1 [earth]
+    z = np.array(z) # O-C data
+
+    # noise up data since these are measurements after all
+    if noise:
+        Xn = np.copy(X)
+        yn = np.copy(y) 
+        zn = np.copy(z)
+
+        for i in range(noise):
+            # biased variation of points close to 0 O-C
+            zr = z + np.random.normal(0,0.1*np.abs(z),z.shape) 
+
+            Xn = np.concatenate( (Xn,X) )
+            yn = np.concatenate( (yn,y) )
+            zn = np.concatenate( (zn,zr) )
+
+        return Xn,yn,zn
+    else:
+        return X, y, z
 
 def ml_estimate(m, x,y):
     # TODO 
