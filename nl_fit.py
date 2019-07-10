@@ -36,9 +36,6 @@ if __name__ == "__main__":
     help_ = "planet 2 eccentricity prior (radian)"
     parser.add_argument("-e2", "--eccentricity2", help=help_, default=0, type=float)
 
-    #help_ = "machine learning prior estimate"
-    #parser.add_argument("-ml", "--ai", help=help_, default=False, type=bool)
-
     # TODO add inclination argument? 
 
     args = parser.parse_args()
@@ -65,13 +62,6 @@ if __name__ == "__main__":
         {'m':args.mass2*mearth/msun, 'P':args.period2, 'e':args.eccentricity2, 'omega':args.omega2,  'inc':3.14159/2}
     ]
 
-    # if args.ai: # TODO 
-    #     priors = ml_estimate(data[:,0], data[:,1])
-    #     for k in priors.keys():
-    #         objects[2][k] = priors[k]
-    # else:
-    #     pass
-
     # estimate priors    
     bounds = [
         [ lstats['marginals'][0]['5sigma'][0], lstats['marginals'][0]['5sigma'][1] ], # mid transit (time)
@@ -85,7 +75,6 @@ if __name__ == "__main__":
             'm':[ 5*mearth/msun, objects[2]['m']+50*mearth/msun], # Mass #2 (msun)
             'e':[ 0.04, 0.1 ],
             'omega':[2.4,4.5],
-            #'omega':[ objects[2]['omega']-1,  objects[2]['omega']+1 ],
         }),
     ]
     print(bounds)
@@ -170,42 +159,3 @@ if __name__ == "__main__":
     np.savetxt('nlfit_posteriors.txt',nlposteriors)
     with open('nlfit_stats.json', 'w') as fp:
         json.dump(nlstats, fp)
-
-    # run nl_fit.py -i tic183985250.txt -m1 22  -m2 45 -ms 1 -p2 2
-
-    '''
-    # L. Evidence & 'nested importance sampling global log-evidence': -21.007
-    Mid-transit [day] 
-        In [34]: lstats['marginals'][0]['median']
-        Out[34]: 1354.2151412742587
-        In [35]: lstats['marginals'][0]['sigma']
-        Out[35]: 0.00036177587105612474
-        In [36]: lstats['marginals'][1]['median']
-        Out[36]: 0.7920460094094526
-        In [37]: lstats['marginals'][1]['sigma']
-        Out[37]: 1.851038551931028e-05
-
-
-    NL. Evidence & -18.0 \\
-    Mid-transit [day] & 1354.2154415218338 $\pm$ 0.00046905372471428564 \\
-    Period 1 [day] & 0.792060543029102 $\pm$ 3.3883367769049766e-05 \\
-    Period 2 [day] & 1.918166823093039 $\pm$ 0.23827370123331615 \\
-    Mass 2 [Earth] & 75.44040963917425 $\pm$ 34.735541847698244 \\
-    Eccentricity 2 & 0.08456609098998988 $\pm$ 0.03506072571270087 \\
-    Omega 2 [radian] & 3.5306967937281915 $\pm$ 1.1229690723791252 \\
-    '''    
-
-    # run nl_fit.py -i sim_data.txt -p1 3.2888 -tm 0.82 -m1 79.45 -m2 31 -p2 7
-    # 3.46 hours 
-
-    # WASP-18 b 
-    # run nested_wasp18.py -i wasp18.txt -m1 3314.82 -m2 69.8 -p2 2 -ms 1.22
-
-    # WASP-126 
-    # run nested_wasp126.py -i wasp126.txt -m1 90.26 -m2 66 -ms 1.12 -p2 2
-
-    # toi 193
-    # run nl_fit.py -i tic183985250.txt -m1 22  -m2 45 -ms 1 -p2 2
-    # overplot the two modes on the posteriors
-    # create the two plots in the ttv model 
-    # see which of the two models are stable - run model for 100 epochs
