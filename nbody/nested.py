@@ -173,7 +173,7 @@ def get_stats(posterior,percentile=75):
         })
     return stats
 
-def nbody_limits( newobj, nlstats, n=1):
+def nbody_limits( newobj, nlstats, ttv, n=1):
     # TODO create wrapper?
     upper = np.copy( ttv )
     lower = np.copy( ttv )
