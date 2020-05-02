@@ -108,12 +108,34 @@ The residuals of a linear ephemeris are plotted and then compared against a non-
 - add `nbody/` to your `PYTHONPATH`
 
 ## Citation 
-This work has been submitted for publication. A preprint is available [here](https://www.overleaf.com/read/mfqvfxjbfrwh) and comments from the community are welcome. 
+White paper: https://iopscience.iop.org/article/10.3847/1538-3881/ab4e1c/pdf
+ArXiv: https://arxiv.org/abs/1907.03377
 
-If you use any of these algorithms in your work please include Kyle A. Pearson as a coauthor. Current institution: Lunar and Planetary Laboratory, University of Arizona, 1629 East University Boulevard, Tucson, AZ, 85721, USA
-
+```
+@ARTICLE{Pearson2019,
+       author = {{Pearson}, Kyle A.},
+        title = "{A Search for Multiplanet Systems with TESS Using a Bayesian N-body Retrieval and Machine Learning}",
+      journal = {\aj},
+     keywords = {Exoplanet astronomy, Exoplanet catalogs, Exoplanet dynamics, Observational astronomy, N-body simulations, N-body problem, Nested sampling, Convolutional neural networks, Neural networks, Astrophysics - Earth and Planetary Astrophysics},
+         year = 2019,
+        month = dec,
+       volume = {158},
+       number = {6},
+          eid = {243},
+        pages = {243},
+          doi = {10.3847/1538-3881/ab4e1c},
+archivePrefix = {arXiv},
+       eprint = {1907.03377},
+ primaryClass = {astro-ph.EP},
+       adsurl = {https://ui.adsabs.harvard.edu/abs/2019AJ....158..243P},
+      adsnote = {Provided by the SAO/NASA Astrophysics Data System}
+}
+```
 
 ## Awards 
-[This project](https://devpost.com/software/nbody-ai-retrieval) was submitted to the [Powered by TF2.0 Challenge](https://tensorflow.devpost.com/) and will be featured at the TensorFlow World conference in 2019. 
+[This project](https://devpost.com/software/nbody-ai-retrieval) was submitted to the [Powered by TF2.0 Challenge](https://tensorflow.devpost.com/) and was featured in the keynote address at the TensorFlow World conference in 2019 and in 2020.
+
+https://twitter.com/ProfessorMunchy/status/1237858576065900548
 
 ![](figures/TF2_challenge.png)
+
