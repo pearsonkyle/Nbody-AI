@@ -1,3 +1,5 @@
+[![Exoplanet Ephemeris Fitting Tutorial](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1T5VT2gZ-ip6K6T9IXqMzQdSiEaf-UbJn?usp=sharing)
+
 # N-Body AI Retrieval
 A python 3 package for generating N-body simulations, computing transit timing variations (TTV) and retrieving orbit parameters and uncertainties from TTV measurements within a Bayesian framework. Machine learning is used to estimate the orbit parameters and constrain priors before running a retrieval to model orbital perturbations. 
 
@@ -9,6 +11,7 @@ Transiting exoplanets in multiplanet systems exhibit non-Keplerian orbits as a r
 ![](figures/orbits_game.gif)
 
 ## Generate an N-body simulation 
+
 The n-body simulations in this research make use of the [REBOUND](https://rebound.readthedocs.io) code. To generate a random simulation follow the code below: 
 ```python
 from nbody.simulation import generate, analyze, report
@@ -34,6 +37,7 @@ if __name__ == "__main__":
     # plot the results 
     report(ttv_data, savefile='report.png')
 ```
+
 A simulation report looks like this: 
 ![](figures/report_simulation.png)
 **Top Left** plots of the orbit positions for each object. **Top Middle** Radial velocity semi-amplitude (m/s) for the star. **Top Right** Lomb-Scargle periodogram of the RV semi-amplitude signal. **Bottom Left** Table of simulation parameters. **Bottom Middle** The difference (or residuals) between the observed transit times and a calculated linear ephemeris (O-C). **Bottom Right** Lomb-Scargle periodogram of the O-C signal for each planet. 
