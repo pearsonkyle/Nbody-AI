@@ -44,19 +44,19 @@ def randomize():
     objects = [
         # stellar parameters
         {
-            'm': np.random.uniform(0.85,1.15), # star mass [msun]
+            'm': np.random.uniform(0.75,1.15), # star mass [msun]
         },
 
         # planet 1
         {
-            'm': np.random.uniform(0.66*mearth/msun, 150*mearth/msun),
+            'm': np.random.uniform(0.66*mearth/msun, 450*mearth/msun),
             'P': np.random.uniform(0.8,10),
             # inc - conditional based on transiting inclination limit 
         },
 
         # planet 2
         {
-            'm': np.random.uniform(0.25,3),  # ratio with planet 1   
+            'm': np.random.uniform(0.1,4),  # ratio with planet 1   
             # P - conditional, must be beyond hill radius of planet 1
             # inc - conditional based on transiting inclination limit
             'omega': np.random.uniform(0,2*np.pi),
@@ -76,7 +76,7 @@ def randomize():
     while a1+hr1 > a2-hr2:
 
         # check if hill spheres interact
-        objects[2]['P'] = objects[1]['P']*np.random.uniform(1.25,2.5)
+        objects[2]['P'] = objects[1]['P']*np.random.uniform(1.25,3.25)
         a2 = sa(objects[0]['m'], objects[2]['P'] )
         hr2 = hill_sphere(objects,i=2)
 
@@ -85,19 +85,22 @@ def randomize():
     inc_lim1 = np.arctan(rs/a1)
     inc_lim2 = np.arctan(rs/a2)
 
-    # chance for planet 1 to be non-transiting 
-    objects[1]['inc'] = np.random.uniform(np.pi/2-inc_lim1*2, np.pi/2)
+    # # chance for planet 1 to be non-transiting 
+    # objects[1]['inc'] = np.random.uniform(np.pi/2-inc_lim1*2, np.pi/2)
 
-    # planet 1 is not transiting
-    if objects[1]['inc'] < (np.pi/2-inc_lim1):
+    # # planet 1 is not transiting
+    # if objects[1]['inc'] < (np.pi/2-inc_lim1):
 
-        # make sure planet 2 is transiting
-        objects[2]['inc'] = np.random.uniform(np.pi/2-inc_lim2, np.pi/2)
+    #     # make sure planet 2 is transiting
+    #     objects[2]['inc'] = np.random.uniform(np.pi/2-inc_lim2, np.pi/2)
 
-    # planet 1 is transiting 
-    else:
-        # planet 2 can transit or not 
-        objects[2]['inc'] = np.random.uniform(np.pi/2-inc_lim2*2, np.pi/2)
+    # # planet 1 is transiting 
+    # else:
+    #     # planet 2 can transit or not 
+    #     objects[2]['inc'] = np.random.uniform(np.pi/2-inc_lim2*2, np.pi/2)
+
+    objects[1]['inc'] = np.pi/2
+    objects[2]['inc'] = np.pi/2
 
     # TODO potential bias for ML 
     # increase inclination limits? real orbits may subtend larger distribution in inc

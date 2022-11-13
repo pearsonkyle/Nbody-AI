@@ -1,11 +1,14 @@
-# deprecated 
+import sys
+sys.path.append('../')
+from nbody.tools import msun, mearth, mjup
+
 import glob
 import pickle
 import argparse
 import numpy as np
 import matplotlib.pyplot as plt
+from astropy.timeseries import LombScargle
 
-from nbody.tools import lomb_scargle, make_sin, msun, mearth, mjup
 
 if __name__ == "__main__":
 
@@ -13,11 +16,17 @@ if __name__ == "__main__":
     help_ = "Input pickle file of simulations"
     parser.add_argument("-i", "--input", help=help_)
     help_ = "Pickle file to write X,y data to"
-    parser.add_argument("-o", "--output", help=help_)
+    parser.add_argument("-o", "--output", help=help_,default='ttv_xy.pkl')
     args = parser.parse_args()
 
-    #data = pickle.load(open('ttv100e.pkl','rb'))
-    data = pickle.load(open(args.input,'rb'))
+    X,y = pickle.load(open(args.input,'rb'))
+
+    # Search for periodic signals in residuals after linear fit
+    freq,power = LombScargle(lf.epochs, lf.residuals).autopower(nyquist_factor=2)
+
+    # Phase fold data at max peak
+    mi = np.argmax(power)
+    per = 1./freq[mi]  # TODO manually change this?
 
     X, y, z = [], [], []
 
