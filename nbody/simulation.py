@@ -50,7 +50,7 @@ def randomize():
         # planet 1
         {
             'm': np.random.uniform(0.66*mearth/msun, 450*mearth/msun),
-            'P': np.random.uniform(0.8,10),
+            'P': np.random.uniform(0.8,20),
             # inc - conditional based on transiting inclination limit 
         },
 
@@ -60,7 +60,7 @@ def randomize():
             # P - conditional, must be beyond hill radius of planet 1
             # inc - conditional based on transiting inclination limit
             'omega': np.random.uniform(0,2*np.pi),
-            'e': np.abs(np.random.normal(0,0.1))
+            'e': np.abs(np.random.normal(0,0.01))
         }
     ]
 

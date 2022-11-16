@@ -11,16 +11,16 @@ from nbody.simulation import randomize, generate, analyze, report, transit_times
 from nbody.tools import msun, mearth, mjup
 
 if __name__ == "__main__":
-    
+
     parser = argparse.ArgumentParser()
     help_ = "Name of pickle file to save simulations to"
     parser.add_argument("-f", "--file", help=help_, default="ttv.pkl")
     help_ = "Number of simulations"
     parser.add_argument("-s", "--samples", help=help_, default=10000, type=int)
     help_ = "Number of periastron arguments per simulation"
-    parser.add_argument("-o", "--omegas", help=help_, default=6, type=int)
+    parser.add_argument("-o", "--omegas", help=help_, default=10, type=int)
     help_ = "Number of planet 1 orbital periods to integrate the simulation for"
-    parser.add_argument("-p", "--periods", help=help_, default=500 ,type=int)
+    parser.add_argument("-p", "--periods", help=help_, default=100 ,type=int)
 
     args = parser.parse_args()
 
