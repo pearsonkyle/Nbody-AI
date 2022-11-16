@@ -300,25 +300,6 @@ class linear_fitter(object):
         ax[2].grid(True,ls='--')
         return fig,ax
 
-# Function that bins an array
-def binner(arr, n, err=''):
-    if len(err) == 0:
-        ecks = np.pad(arr.astype(float), (0, ((n - arr.size % n) % n)), mode='constant',
-                      constant_values=np.NaN).reshape(-1, n)
-        arr = np.nanmean(ecks, axis=1)
-        return arr
-    else:
-        ecks = np.pad(arr.astype(float), (0, ((n - arr.size % n) % n)), mode='constant',
-                      constant_values=np.NaN).reshape(-1, n)
-        why = np.pad(err.astype(float), (0, ((n - err.size % n) % n)), mode='constant', constant_values=np.NaN).reshape(
-            -1, n)
-        weights = 1. / (why ** 2.)
-        # Calculate the weighted average
-        arr = np.nansum(ecks * weights, axis=1) / np.nansum(weights, axis=1)
-        err = np.array([np.sqrt(1. / np.nansum(1. / (np.array(i) ** 2.))) for i in why])
-        return arr, err
-
-
 def main():
     Tc = np.array([ # measured mid-transit times
     2456666.0885, 2456820.3127, 2456675.9249, 2456646.3907,
