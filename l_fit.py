@@ -207,6 +207,13 @@ class linear_fitter(object):
         # Search for periodic signals in residuals after linear fit
         freq,power = LombScargle(self.epochs, self.residuals).autopower(nyquist_factor=2)
 
+        # change up the frequency grid a little
+        maxper = np.max(self.epochs) - np.min(self.epochs)
+        minper = (1./freq).min()
+
+        # recompute on new grid
+        freq,power = LombScargle(self.epochs, self.residuals).autopower(minimum_frequency=1./maxper, maximum_frequency=1./minper, nyquist_factor=2)
+
         # Phase fold data at max peak
         mi = np.argmax(power)
         per = 1./freq[mi]
