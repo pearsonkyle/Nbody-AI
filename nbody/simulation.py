@@ -24,11 +24,23 @@ def empty_data(N): # orbit parameters in timeseries
         'M':np.zeros(N),
     }
 
-def generate(objects, Ndays=None, Noutputs=None):
+def generate(objects, Ndays=None, Noutputs=None, integrator=None):
     # create rebound simulation 
     # for object parameters see: 
     # https://rebound.readthedocs.io/en/latest/_modules/rebound/particle.html
     sim = rebound.Simulation()
+
+    if integrator is not None:
+        if integrator == 'tes':
+            sim.integrator = "tes"
+            sim.ri_tes.dq_max = 1e-2
+            sim.ri_tes.recti_per_orbit = 1.61803398875
+            sim.ri_tes.epsilon = 1e-6
+        elif integrator == 'whfast':
+            sim.integrator = "whfast"
+            sim.ri_whfast.corrector = 5
+            sim.ri_whfast.safe_mode = 0
+
     sim.units = ('day', 'AU', 'Msun')
     for i in range(len(objects)):
         sim.add( **objects[i] ) 
@@ -56,10 +68,11 @@ def randomize():
 
         # planet 2
         {
-            'm': np.random.uniform(0.1,4),  # ratio with planet 1   
+            'm': np.random.uniform(0.1,10),  # ratio with planet 1   
             # P - conditional, must be beyond hill radius of planet 1
             # inc - conditional based on transiting inclination limit
             'omega': np.random.uniform(0,2*np.pi),
+            #'e': 0
             'e': np.abs(np.random.normal(0,0.01))
         }
     ]
@@ -76,7 +89,7 @@ def randomize():
     while a1+hr1 > a2-hr2:
 
         # check if hill spheres interact
-        objects[2]['P'] = objects[1]['P']*np.random.uniform(1.25,3.25)
+        objects[2]['P'] = objects[1]['P']*np.random.uniform(1.25,10.25)
         a2 = sa(objects[0]['m'], objects[2]['P'] )
         hr2 = hill_sphere(objects,i=2)
 
@@ -145,6 +158,7 @@ def integrate(sim, objects, Ndays, Noutputs):
     })
 
     return sim_data 
+
 
 def transit_times(xp,xs,times):
     # check for sign change in position difference
@@ -275,7 +289,7 @@ def report(data, savefile=None):
 
         if len(data['planets'][j-1]['ttv']) >= 2:
             ax[3].plot(data['planets'][j-1]['ttv']*24*60,label='Planet {}'.format(j) )  # convert days to minutes
-            ax[5].plot( 1./data['planets'][j-1]['freq'], data['planets'][j-1]['power'], label='Planet {}'.format(j) )
+            ax[5].semilogx( 1./data['planets'][j-1]['freq'], data['planets'][j-1]['power'], label='Planet {}'.format(j) )
 
         # populate table data 
         for i,k in enumerate(keys):
@@ -310,7 +324,7 @@ def report(data, savefile=None):
         
     ax[5].set_xlabel('Period (epoch)')
     ax[5].set_ylabel('|O-C| Power' )
-    ax[5].set_xlim([1,30])
+    #ax[5].set_xlim([1,30])
     ax[5].legend(loc='best')
 
     if savefile:
