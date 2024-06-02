@@ -136,20 +136,3 @@ if __name__ == '__main__':
     plt.plot(zv[i],'k-'); plt.plot(ym,'r-');plt.show()
     plt.scatter(Xv[:,4],Xv[:,3]/Xv[:,1],c=error); plt.colorbar(); plt.show()
     '''
-
-
-    '''
-    hey 
-    what do you know
-    up all night 
-    I code like neo
-
-    hey how do you want
-    i code in the cloud
-    and then you can clone it
-    x2
-
-    freestyle
-
-    193 loud lord 
-    '''

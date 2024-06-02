@@ -1,25 +1,38 @@
 from nbody.simulation import generate, analyze, report
 from nbody.tools import mjup,msun,mearth
+import time
 
 if __name__ == "__main__":
     
     # units: Msun, Days, au
     objects = [
-        {'m':1.},
-        {'m':22*mearth/msun, 'P':0.792, 'inc':3.14159/2, 'e':0, 'omega':0 }, 
-        {'m':73.4*mearth/msun, 'P':1.65, 'inc':3.14159/2, 'e':0.029,  'omega':1.92  }, 
-        #{'m':0.432*mjup/msun, 'P':12, 'inc':3.14159/2, 'e':0,  'omega':0  }, 
-    ]
+        {'m':0.95}, # stellar mass
+        {'m':1.169*mjup/msun, 'P':2.797436, 'inc':3.14159/2, 'e':0, 'omega':0 }, 
+        {'m':0.1*mjup/msun, 'P':2.797436*1.9, 'inc':3.14159/2, 'e':0.0,  'omega':0  }, 
+    ] # HAT-P-37
+    t1 = time.time()
 
     # create REBOUND simulation
-    sim_data = generate(objects, objects[1]['P']*30, int(30*objects[1]['P']*24) )
+    n_orbits = 1000
+    sim_data = generate(objects, objects[1]['P']*n_orbits, int(n_orbits*objects[1]['P']*24) )
+    print("Simulation time: {}s".format(time.time()-t1))
 
     # collect the analytics of interest from the simulation
     ttv_data = analyze(sim_data)
 
     # plot the results 
     report(ttv_data)
+
+    # # create a fake dataset
+    # tmids = 2459150 + ttv_data['planets'][0]['tt']
+    # # add random noise to observations
+    # tmids += np.random.normal(0,0.5,len(tmids))/(24*60)
+    # # randomly select 40 observations without repeat
+    # tmids = np.random.choice(tmids,40,replace=False)
+    # # add random error to observations between
+    # err = 1/24/60 + np.random.random()*0.25/24/60 + np.random.normal(0,0.1,len(tmids))/(24*60)
     
+
     dude()
     #, savefile='report.png')
     
